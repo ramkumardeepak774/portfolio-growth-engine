@@ -1,0 +1,158 @@
+# =============================================================
+# Portfolio Holdings
+# =============================================================
+# Edit this file with your ACTUAL holdings.
+# Below is a SAMPLE — replace with your real data.
+#
+# asset_class options:
+#   equity_large_cap, equity_mid_cap, equity_small_cap, equity_micro_cap
+#   mf_equity, mf_hybrid, mf_debt, mf_index, mf_elss
+#   gold, fd, ppf, epf, nps, real_estate, crypto, cash, other
+#
+# transaction type options: buy, sell, dividend, sip, switch
+# =============================================================
+
+holdings:
+  # --- Direct Stocks ---
+  - symbol: "RELIANCE"
+    name: "Reliance Industries"
+    asset_class: equity_large_cap
+    sector: "Energy"
+    current_price: 1400    # Update manually or use --live flag
+    transactions:
+      - date: "2024-01-15"
+        type: buy
+        quantity: 10
+        price: 2500
+        charges: 50
+      - date: "2024-06-10"
+        type: buy
+        quantity: 5
+        price: 2900
+        charges: 30
+
+  - symbol: "TCS"
+    name: "Tata Consultancy Services"
+    asset_class: equity_large_cap
+    sector: "IT"
+    current_price: 3800
+    transactions:
+      - date: "2023-11-01"
+        type: buy
+        quantity: 8
+        price: 3400
+        charges: 40
+
+  - symbol: "HDFCBANK"
+    name: "HDFC Bank"
+    asset_class: equity_large_cap
+    sector: "Banking"
+    current_price: 1700
+    transactions:
+      - date: "2024-03-20"
+        type: buy
+        quantity: 20
+        price: 1500
+        charges: 45
+
+  - symbol: "DIXON"
+    name: "Dixon Technologies"
+    asset_class: equity_mid_cap
+    sector: "Electronics Manufacturing"
+    current_price: 12000
+    transactions:
+      - date: "2024-02-10"
+        type: buy
+        quantity: 3
+        price: 6500
+        charges: 25
+
+  - symbol: "KAYNES"
+    name: "Kaynes Technology"
+    asset_class: equity_small_cap
+    sector: "Electronics Manufacturing"
+    current_price: 5000
+    transactions:
+      - date: "2024-05-15"
+        type: buy
+        quantity: 5
+        price: 3200
+        charges: 20
+
+  # --- Mutual Funds ---
+  # For MFs, quantity = units, price = NAV at purchase
+  - symbol: "PPFAS_FLEXICAP"
+    name: "Parag Parikh Flexi Cap Fund"
+    asset_class: mf_equity
+    sector: "Diversified"
+    current_price: 75     # Current NAV
+    transactions:
+      - date: "2024-01-05"
+        type: sip
+        quantity: 200
+        price: 58
+      - date: "2024-02-05"
+        type: sip
+        quantity: 190
+        price: 61
+      - date: "2024-03-05"
+        type: sip
+        quantity: 185
+        price: 63
+      - date: "2024-04-05"
+        type: sip
+        quantity: 178
+        price: 65
+      - date: "2024-05-05"
+        type: sip
+        quantity: 170
+        price: 68
+
+  - symbol: "NIFTY_INDEX"
+    name: "UTI Nifty 50 Index Fund"
+    asset_class: mf_index
+    sector: "Index"
+    current_price: 155
+    transactions:
+      - date: "2024-01-10"
+        type: sip
+        quantity: 100
+        price: 130
+      - date: "2024-02-10"
+        type: sip
+        quantity: 95
+        price: 135
+      - date: "2024-03-10"
+        type: sip
+        quantity: 92
+        price: 140
+
+  - symbol: "QUANT_SMALLCAP"
+    name: "Quant Small Cap Fund"
+    asset_class: mf_equity
+    sector: "Small Cap"
+    current_price: 220
+    transactions:
+      - date: "2024-01-15"
+        type: sip
+        quantity: 60
+        price: 180
+      - date: "2024-02-15"
+        type: sip
+        quantity: 55
+        price: 185
+      - date: "2024-03-15"
+        type: sip
+        quantity: 52
+        price: 192
+
+  - symbol: "AXIS_ELSS"
+    name: "Axis ELSS Tax Saver Fund"
+    asset_class: mf_elss
+    sector: "ELSS"
+    current_price: 85
+    transactions:
+      - date: "2024-02-01"
+        type: sip
+        quantity: 120
+        price: 72
