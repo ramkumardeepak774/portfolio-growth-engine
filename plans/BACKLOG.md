@@ -8,10 +8,13 @@
 
 | # | Item | Why |
 |---|---|---|
-| 1 | Deploy to Vercel + Railway | App is useless without deployment |
-| 2 | PostgreSQL price cache | Stop hitting Yahoo Finance on every page load |
-| 3 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |
-| 4 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
+| 1 | Backend unit tests (pytest) | Financial calculations must be correct — bugs here cost money |
+| 2 | Frontend unit tests (Vitest) | Verify financial utils and formatting |
+| 3 | GitHub Actions CI | Auto-run tests on every push |
+| 4 | Deploy to Vercel + Railway | App is useless without deployment |
+| 5 | PostgreSQL price cache | Stop hitting Yahoo Finance on every page load |
+| 6 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |
+| 7 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
 
 ---
 

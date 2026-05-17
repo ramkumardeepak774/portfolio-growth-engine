@@ -50,7 +50,26 @@
 
 ---
 
-## Phase 3 — Data & Analytics (Planned 📋)
+## Phase 3 — Testing (Planned 📋)
+
+### Backend (pytest)
+- [ ] `tests/` folder setup with pytest + pytest-asyncio
+- [ ] Unit tests for financial calculations (CAGR, XIRR, Max Drawdown, Beta, Alpha, Sharpe)
+- [ ] Unit tests for portfolio P&L and allocation
+- [ ] API integration tests (portfolio summary, holdings, allocation routes)
+- [ ] `pyproject.toml` updated with pytest config
+
+### Frontend (Vitest)
+- [ ] Vitest setup in `frontend/`
+- [ ] Unit tests for `lib/financial.ts` (mirrors backend math)
+- [ ] Unit tests for `lib/format.ts` (INR formatting edge cases)
+
+### CI/CD
+- [ ] GitHub Actions workflow — run backend + frontend tests on every push
+
+---
+
+## Phase 4 — Data & Analytics (Planned 📋)
 
 - [ ] PostgreSQL integration for price caching (avoid repeated Yahoo API calls)
 - [ ] Neon PostgreSQL deployment (free tier)
