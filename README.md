@@ -4,19 +4,23 @@
 
 ---
 
-## The 1000x Mission
+## Goal
 
-$$\text{1000x in 20 years} \Rightarrow \text{CAGR} = \left(\frac{1000}{1}\right)^{\frac{1}{20}} - 1 \approx 41.4\%$$
+Build long-term wealth through disciplined investing, data-driven decisions, and compounding.
 
-| Target | CAGR Required | Strategy |
+$$\text{20x in 20 years} \Rightarrow \text{CAGR} = \left(\frac{20}{1}\right)^{\frac{1}{20}} - 1 \approx 16.2\%$$
+
+| Target | CAGR Required | Realistic Assessment |
 |---|---|---|
-| 10x | 12.2% | Index funds + stay invested |
-| 50x | 21.5% | Quality multi-cap + low churn |
-| 100x | 25.9% | Concentrated high-conviction bets |
-| 500x | 35.9% | Emerging leaders + early entry |
-| **1000x** | **41.4%** | **Exceptional stock-picking + compounding discipline** |
+| 5x | 8.4% | Conservative — achievable with debt + equity mix |
+| 10x | 12.2% | Realistic — index funds + stay invested long enough |
+| 20x | 16.2% | Achievable — diversified equity with discipline |
+| 50x | 21.5% | Difficult — requires good stock selection + low churn |
+| 100x | 25.9% | Very hard — sustained outperformance over 20 years |
 
-This is an aspirational, ambitious target. Every feature in this system is designed to give you an edge — better data, better analytics, better decisions.
+**Realistic target: 15–20x in 20 years (15–16% CAGR)** — in line with long-term Indian equity market returns. Beating the index consistently by even 2–3% per year is genuinely difficult and puts you in the top tier of investors.
+
+This platform helps you stay disciplined, measure accurately, and make better decisions — the real drivers of long-term wealth.
 
 ---
 
