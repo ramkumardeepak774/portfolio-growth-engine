@@ -46,6 +46,7 @@
 - [x] Dark/light theme
 - [x] Responsive design
 - [x] Pushed to GitHub
+- [x] **Frontend integrated with FastAPI backend**
 
 ---
 

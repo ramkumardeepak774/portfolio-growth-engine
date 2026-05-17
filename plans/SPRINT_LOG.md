@@ -24,9 +24,11 @@ Build and ship the frontend dashboard, push to GitHub.
 - Pushed all 99 files to GitHub
 
 ### Blocked / Pending
-- Backend not yet deployed (still local only)
 - PostgreSQL not connected (price data uses live Yahoo Finance calls)
 - Holdings data is still YAML-based, no UI write support yet
+
+### Done Later in Week ✅
+- Frontend successfully integrated with FastAPI backend
 
 ### Next Week
 - Deploy backend to Railway
