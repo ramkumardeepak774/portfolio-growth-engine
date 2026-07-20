@@ -253,27 +253,26 @@ All math is implemented from first principles in `src/analyzer.py` (backend) and
 
 ## Deployment
 
-### 1. Frontend → Vercel
+### 1. Backend → Railway
 
-```bash
-# Push to GitHub, then import on vercel.com
-# Set environment variable:
-NEXT_PUBLIC_API_URL=https://your-backend.railway.app
-```
+Railway reads `railway.json` at the repo root, which points its Nixpacks
+builder at `uv run uvicorn src.app:app --host 0.0.0.0 --port $PORT`
+(Nixpacks auto-installs `uv` when it sees `uv.lock`). Connect the GitHub
+repo on railway.app, then set env vars — at minimum `DATABASE_URL` (from
+Neon) and `CORS_ORIGINS` (set once the Vercel URL is known, see step 3).
 
-### 2. Backend → Railway
+### 2. Frontend → Vercel
 
-```bash
-# Connect GitHub repo on railway.app
-# Add environment variables
-# Railway auto-detects Python and runs uvicorn
-```
+Connect the GitHub repo on vercel.com with the project root set to
+`frontend/`, then set `NEXT_PUBLIC_API_URL` to your Railway backend URL
+as a project environment variable.
 
 ### 3. Update CORS
 
-In `src/app.py`, add your Vercel URL:
-```python
-allow_origins=["https://your-app.vercel.app"]
+`CORS_ORIGINS` on the Railway backend is a comma-separated list read at
+startup (see `src/config.py`) — no code change needed:
+```
+CORS_ORIGINS=http://localhost:3000,https://your-app.vercel.app
 ```
 
 ---

@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # --- App ---
     app_env: str = "development"
     log_level: str = "INFO"
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @property
     def has_alpha_vantage(self) -> bool:
