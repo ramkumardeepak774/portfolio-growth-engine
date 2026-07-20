@@ -170,10 +170,8 @@ portfolio-growth-engine/
 ### Backend
 
 ```bash
-# 1. Setup Python environment
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# 1. Install dependencies (uv creates .venv and installs everything, incl. dev/test deps)
+uv sync --extra dev
 
 # 2. Configure environment
 cp .env.example .env
@@ -183,18 +181,23 @@ cp .env.example .env
 vim data/portfolio.yaml
 
 # 4. Start the API server
-uvicorn src.app:app --reload --port 8000
+uv run uvicorn src.app:app --reload --port 8000
 # API docs at http://localhost:8000/docs
+
+# 5. Run the test suite
+uv run pytest -v
 ```
+
+> No `uv`? Install it with `brew install uv` (or see [astral.sh/uv](https://astral.sh/uv)). Prefer plain pip? `python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"` works too.
 
 ### CLI (no frontend needed)
 
 ```bash
-python -m src.cli summary       # Portfolio summary
-python -m src.cli goal          # Goal progress
-python -m src.cli rebalance     # Rebalancing suggestions
-python -m src.cli screen        # Stock screener
-python -m src.cli report        # Full report
+uv run python -m src.cli summary       # Portfolio summary
+uv run python -m src.cli goal          # Goal progress
+uv run python -m src.cli rebalance     # Rebalancing suggestions
+uv run python -m src.cli screen        # Stock screener
+uv run python -m src.cli report        # Full report
 ```
 
 ### Frontend
