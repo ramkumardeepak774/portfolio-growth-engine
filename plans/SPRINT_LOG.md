@@ -60,6 +60,33 @@ Phase 3 testing — pytest (backend), Vitest (frontend), GitHub Actions CI.
 
 ---
 
+## Week 3 — 21 Jul 2026
+
+### Goal
+Phase 5 — deploy backend to Railway, frontend to Vercel, provision Neon.
+
+### Done ✅
+- Installed and authenticated Vercel, Railway, and Neon CLIs
+- Created Neon Postgres project (`portfolio-growth-engine`, PG 17, us-east-1) — connection string captured, not yet wired into the app
+- Made backend CORS env-driven (`CORS_ORIGINS` in `src/config.py`/`src/app.py`) instead of hardcoded, so future frontend URL changes don't need a code change
+- Added `railway.json` with an explicit `uv run uvicorn` start command and `/health` healthcheck — Railway's builder can't infer a FastAPI entrypoint on its own
+- Fixed `frontend/vercel.json` — it referenced `NEXT_PUBLIC_API_URL` via the legacy `@api_url` secrets syntax, which would never have resolved
+- Deployed backend to Railway: https://api-production-82d5.up.railway.app (linked to GitHub `main` for auto-deploy on push)
+- Deployed frontend to Vercel: https://frontend-three-lime-80.vercel.app
+- Verified CORS end-to-end (Vercel origin gets `access-control-allow-origin` back from Railway)
+- Caught and removed a mistake before it shipped: `NEXT_PUBLIC_AUTH_DISABLED=true` should never be set in production — briefly set it, then reverted
+
+### Blocked / Pending
+- No backend auth endpoint exists (`/auth/token`) — frontend's real login form fails; "Continue with demo data" is the only working path in production
+- Every backend `/api/*` route is unauthenticated — anyone with the Railway URL can read live portfolio data
+- Neon Postgres is provisioned but unused — app still hits Yahoo Finance live on every request
+
+### Next Week
+- Wire Neon Postgres into the app for price caching (Phase 4)
+- Decide on and implement backend auth before this goes any further
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

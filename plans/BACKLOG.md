@@ -11,10 +11,11 @@
 | ~~1~~ | ~~Backend unit tests (pytest)~~ | Done — `tests/` (68 tests: analyzer, allocator, models, API) |
 | ~~2~~ | ~~Frontend unit tests (Vitest)~~ | Done — `frontend/lib/*.test.ts` (57 tests) |
 | ~~3~~ | ~~GitHub Actions CI~~ | Done — `.github/workflows/test.yml` |
-| 4 | Deploy to Vercel + Railway | App is useless without deployment |
-| 5 | PostgreSQL price cache | Stop hitting Yahoo Finance on every page load |
+| ~~4~~ | ~~Deploy to Vercel + Railway~~ | Done — see Phase 5 in ROADMAP.md for URLs |
+| 5 | PostgreSQL price cache | Neon DB provisioned but unused — app still hits Yahoo Finance live |
 | 6 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |
 | 7 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
+| 8 | Backend auth (`/auth/token`) | Frontend login form has nothing to call; API is fully public right now |
 
 ---
 

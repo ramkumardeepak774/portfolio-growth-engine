@@ -93,14 +93,19 @@
 
 ---
 
-## Phase 5 — Deployment (Planned 📋)
+## Phase 5 — Deployment (Done ✅)
 
-- [ ] Deploy frontend to Vercel
-- [ ] Deploy backend to Railway / Render
-- [ ] Setup Neon PostgreSQL
-- [ ] Environment variables configured on Vercel
-- [ ] CORS updated for production URL
+- [x] Deploy frontend to Vercel — https://frontend-three-lime-80.vercel.app
+- [x] Deploy backend to Railway — https://api-production-82d5.up.railway.app
+- [x] Setup Neon PostgreSQL — provisioned, not yet wired into the app (Phase 4)
+- [x] Environment variables configured on Vercel
+- [x] CORS updated for production URL (env-driven via `CORS_ORIGINS`, no code change needed going forward)
 - [ ] Custom domain (optional)
+
+Known gaps surfaced during deployment (not fixed, tracked for later):
+- No backend auth endpoint (`/auth/token` doesn't exist) — frontend login form
+  fails; the "Continue with demo data" button is the only working entry point
+- Every `/api/*` backend route is fully public — no JWT/API-key enforcement
 
 ---
 
