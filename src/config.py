@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    # --- Auth ---
+    # Defaults below are dev-only (username "admin@portfolio.local", password
+    # "changeme123") — always override AUTH_USERNAME/AUTH_PASSWORD_HASH/
+    # JWT_SECRET_KEY in production.
+    auth_username: str = "admin@portfolio.local"
+    auth_password_hash: str = "$2b$12$kzXzilywpqwdkuiW6q7sW../EDafsrn3xMLHDfY0ES4g3xCoUtVeK"
+    jwt_secret_key: str = "dev-insecure-secret-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

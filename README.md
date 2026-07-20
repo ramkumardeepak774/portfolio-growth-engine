@@ -190,6 +190,16 @@ uv run pytest -v
 
 > No `uv`? Install it with `brew install uv` (or see [astral.sh/uv](https://astral.sh/uv)). Prefer plain pip? `python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"` works too.
 
+Every `/api/*` route requires a JWT from `POST /auth/token`. Dev-only default
+credentials (`admin@portfolio.local` / `changeme123`) are baked into
+`src/config.py` — **override `AUTH_USERNAME`, `AUTH_PASSWORD_HASH`, and
+`JWT_SECRET_KEY` in production**, or anyone who reads the source code can log
+in. Generate a hash and secret with:
+```bash
+uv run python -c "import bcrypt; print(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt()).decode())"
+uv run python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ### CLI (no frontend needed)
 
 ```bash

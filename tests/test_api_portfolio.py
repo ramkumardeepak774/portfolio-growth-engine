@@ -16,15 +16,43 @@ from src.app import app
 
 
 @pytest.fixture
-def client() -> TestClient:
+def unauthed_client() -> TestClient:
     return TestClient(app)
 
 
+@pytest.fixture
+def client(unauthed_client) -> TestClient:
+    """Authenticated client — logs in with the dev default credentials from config.py."""
+    resp = unauthed_client.post(
+        "/auth/token",
+        data={"username": "admin@portfolio.local", "password": "changeme123"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json()["access_token"]
+    unauthed_client.headers["Authorization"] = f"Bearer {token}"
+    return unauthed_client
+
+
 class TestHealth:
-    def test_health_ok(self, client):
-        resp = client.get("/health")
+    def test_health_ok(self, unauthed_client):
+        resp = unauthed_client.get("/health")
         assert resp.status_code == 200
         assert resp.json()["status"] == "ok"
+
+
+class TestAuthGate:
+    def test_protected_route_rejects_no_token(self, unauthed_client):
+        resp = unauthed_client.get("/api/portfolio/summary")
+        assert resp.status_code == 401
+
+    def test_protected_route_rejects_garbage_token(self, unauthed_client):
+        unauthed_client.headers["Authorization"] = "Bearer not-a-real-token"
+        resp = unauthed_client.get("/api/portfolio/summary")
+        assert resp.status_code == 401
+
+    def test_protected_route_accepts_valid_token(self, client):
+        resp = client.get("/api/portfolio/summary")
+        assert resp.status_code == 200
 
 
 class TestPortfolioSummary:
