@@ -15,7 +15,7 @@
 | 5 | PostgreSQL price cache | Neon DB provisioned but unused — app still hits Yahoo Finance live |
 | 6 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |
 | 7 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
-| 8 | Backend auth (`/auth/token`) | Frontend login form has nothing to call; API is fully public right now |
+| ~~8~~ | ~~Backend auth (`/auth/token`)~~ | Done — JWT via `src/auth.py`, all `/api/*` routes now gated |
 
 ---
 

@@ -102,10 +102,23 @@
 - [x] CORS updated for production URL (env-driven via `CORS_ORIGINS`, no code change needed going forward)
 - [ ] Custom domain (optional)
 
-Known gaps surfaced during deployment (not fixed, tracked for later):
-- No backend auth endpoint (`/auth/token` doesn't exist) — frontend login form
-  fails; the "Continue with demo data" button is the only working entry point
-- Every `/api/*` backend route is fully public — no JWT/API-key enforcement
+Gaps surfaced during deployment — now closed (see Phase 5.1 below):
+- ~~No backend auth endpoint~~
+- ~~Every `/api/*` backend route is fully public~~
+
+---
+
+## Phase 5.1 — Backend Auth (Done ✅)
+
+- [x] `POST /auth/token` — JWT login (`src/auth.py`, `src/api/auth_routes.py`)
+- [x] Every `/api/*` route requires a valid bearer token
+- [x] Password hashed with bcrypt; dev defaults documented, must be
+      overridden in production (`AUTH_USERNAME`, `AUTH_PASSWORD_HASH`,
+      `JWT_SECRET_KEY` env vars)
+- [x] Frontend login form works end-to-end against the real endpoint (it was
+      already correctly wired, just had nothing to call)
+- [x] 18 new tests: password hashing, token creation/validation, `/auth/token`
+      success/failure, protected-route gating
 
 ---
 
