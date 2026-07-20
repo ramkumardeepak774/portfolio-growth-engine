@@ -37,6 +37,29 @@ Build and ship the frontend dashboard, push to GitHub.
 
 ---
 
+## Week 2 — 20 Jul 2026
+
+### Goal
+Phase 3 testing — pytest (backend), Vitest (frontend), GitHub Actions CI.
+
+### Done ✅
+- Backend: `tests/` folder with pytest + pytest-asyncio, `pyproject.toml` pytest config
+  - 60 unit tests: `test_analyzer.py` (CAGR, XIRR, allocation, concentration), `test_allocator.py` (rebalancing, age-based allocation), `test_models.py` (Holding/Portfolio/Goal properties)
+  - 8 API integration tests (`test_api_portfolio.py`) via FastAPI `TestClient` — summary, holdings, allocation, rebalance, goals
+  - Fixed a pre-existing bug: `src/db/engine.py` had a bad relative import (`.config` instead of `..config`) that broke `from src.app import app` entirely
+- Frontend: Vitest installed and configured (`frontend/vitest.config.ts`), `npm test` / `npm run test:watch` scripts
+  - 57 unit tests: `lib/financial.test.ts` (CAGR, XIRR, volatility, drawdown, Sharpe, Beta, Alpha, insights) and `lib/format.test.ts` (INR formatting, percentages, dates, ratios)
+- CI: `.github/workflows/test.yml` — runs backend pytest and frontend vitest in parallel jobs on every push/PR to main
+
+### Blocked / Pending
+- None — 68 backend + 57 frontend tests passing
+
+### Next Week
+- Deploy backend to Railway, frontend to Vercel
+- Connect Neon PostgreSQL for price caching
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

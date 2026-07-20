@@ -8,9 +8,9 @@
 
 | # | Item | Why |
 |---|---|---|
-| 1 | Backend unit tests (pytest) | Financial calculations must be correct — bugs here cost money |
-| 2 | Frontend unit tests (Vitest) | Verify financial utils and formatting |
-| 3 | GitHub Actions CI | Auto-run tests on every push |
+| ~~1~~ | ~~Backend unit tests (pytest)~~ | Done — `tests/` (68 tests: analyzer, allocator, models, API) |
+| ~~2~~ | ~~Frontend unit tests (Vitest)~~ | Done — `frontend/lib/*.test.ts` (57 tests) |
+| ~~3~~ | ~~GitHub Actions CI~~ | Done — `.github/workflows/test.yml` |
 | 4 | Deploy to Vercel + Railway | App is useless without deployment |
 | 5 | PostgreSQL price cache | Stop hitting Yahoo Finance on every page load |
 | 6 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |

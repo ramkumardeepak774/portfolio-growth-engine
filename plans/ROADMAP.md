@@ -50,22 +50,22 @@
 
 ---
 
-## Phase 3 — Testing (Planned 📋)
+## Phase 3 — Testing (Done ✅)
 
 ### Backend (pytest)
-- [ ] `tests/` folder setup with pytest + pytest-asyncio
-- [ ] Unit tests for financial calculations (CAGR, XIRR, Max Drawdown, Beta, Alpha, Sharpe)
-- [ ] Unit tests for portfolio P&L and allocation
-- [ ] API integration tests (portfolio summary, holdings, allocation routes)
-- [ ] `pyproject.toml` updated with pytest config
+- [x] `tests/` folder setup with pytest + pytest-asyncio
+- [x] Unit tests for financial calculations (CAGR, XIRR, Max Drawdown, Beta, Alpha, Sharpe)
+- [x] Unit tests for portfolio P&L and allocation
+- [x] API integration tests (portfolio summary, holdings, allocation routes)
+- [x] `pyproject.toml` updated with pytest config
 
 ### Frontend (Vitest)
-- [ ] Vitest setup in `frontend/`
-- [ ] Unit tests for `lib/financial.ts` (mirrors backend math)
-- [ ] Unit tests for `lib/format.ts` (INR formatting edge cases)
+- [x] Vitest setup in `frontend/`
+- [x] Unit tests for `lib/financial.ts` (mirrors backend math)
+- [x] Unit tests for `lib/format.ts` (INR formatting edge cases)
 
 ### CI/CD
-- [ ] GitHub Actions workflow — run backend + frontend tests on every push
+- [x] GitHub Actions workflow — run backend + frontend tests on every push
 
 ---
 
