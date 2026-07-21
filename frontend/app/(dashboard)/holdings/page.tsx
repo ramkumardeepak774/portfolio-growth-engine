@@ -23,10 +23,46 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useHoldings } from "@/hooks/use-portfolio"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useHoldings, useAddTransaction } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, pnlColor } from "@/lib/format"
 import { Plus, Search, TrendingUp, TrendingDown } from "lucide-react"
-import type { HoldingRow } from "@/types"
+import type { HoldingRow, TransactionType } from "@/types"
+
+const TXN_TYPES: { value: TransactionType; label: string }[] = [
+  { value: "buy", label: "Buy" },
+  { value: "sell", label: "Sell" },
+  { value: "sip", label: "SIP" },
+  { value: "dividend", label: "Dividend" },
+  { value: "switch", label: "Switch" },
+]
+
+const ASSET_CLASSES: { value: string; label: string }[] = [
+  { value: "equity_large_cap", label: "Equity — Large Cap" },
+  { value: "equity_mid_cap", label: "Equity — Mid Cap" },
+  { value: "equity_small_cap", label: "Equity — Small Cap" },
+  { value: "equity_micro_cap", label: "Equity — Micro Cap" },
+  { value: "mf_equity", label: "Mutual Fund — Equity" },
+  { value: "mf_hybrid", label: "Mutual Fund — Hybrid" },
+  { value: "mf_debt", label: "Mutual Fund — Debt" },
+  { value: "mf_index", label: "Mutual Fund — Index" },
+  { value: "mf_elss", label: "Mutual Fund — ELSS" },
+  { value: "gold", label: "Gold" },
+  { value: "fd", label: "Fixed Deposit" },
+  { value: "ppf", label: "PPF" },
+  { value: "epf", label: "EPF" },
+  { value: "nps", label: "NPS" },
+  { value: "real_estate", label: "Real Estate" },
+  { value: "crypto", label: "Crypto" },
+  { value: "cash", label: "Cash" },
+  { value: "other", label: "Other" },
+]
 
 function HoldingSkeleton() {
   return (
@@ -89,6 +125,7 @@ function HoldingRow({ holding }: { holding: HoldingRow }) {
 export default function HoldingsPage() {
   const { data: holdings, isLoading } = useHoldings()
   const [search, setSearch] = useState("")
+  const [addOpen, setAddOpen] = useState(false)
 
   const filtered = useMemo(() => {
     if (!holdings) return []
@@ -157,15 +194,15 @@ export default function HoldingsPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <Dialog>
+                <Dialog open={addOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-2.5 h-8 text-xs font-medium transition-colors hover:bg-primary/90">
-                    <Plus className="size-3.5" /> Add Holding
+                    <Plus className="size-3.5" /> Add Transaction
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Holding</DialogTitle>
+                      <DialogTitle>Add Transaction</DialogTitle>
                     </DialogHeader>
-                    <AddHoldingForm />
+                    <AddTransactionForm onClose={() => setAddOpen(false)} />
                   </DialogContent>
                 </Dialog>
               </div>
@@ -206,36 +243,185 @@ export default function HoldingsPage() {
   )
 }
 
-// ── Add Holding form (inline — connects to backend YAML via data folder) ──────
-function AddHoldingForm() {
+// ── Add Transaction form — works for both a brand-new holding (name +
+// asset_class required) and adding to an existing one (just the trade
+// details; the backend looks the symbol up and tells us if it's new) ──────
+function AddTransactionForm({ onClose }: { onClose: () => void }) {
+  const { mutate, isPending, error } = useAddTransaction()
+  const [form, setForm] = useState({
+    symbol: "",
+    type: "buy" as TransactionType,
+    date: new Date().toISOString().slice(0, 10),
+    quantity: "",
+    price: "",
+    charges: "",
+    name: "",
+    asset_class: "",
+    sector: "",
+  })
+
+  const isValid = form.symbol.trim() && form.date && Number(form.quantity) > 0 && Number(form.price) > 0
+
+  const handleSubmit = () => {
+    if (!isValid) return
+    mutate(
+      {
+        symbol: form.symbol.trim().toUpperCase(),
+        type: form.type,
+        date: form.date,
+        quantity: Number(form.quantity),
+        price: Number(form.price),
+        charges: form.charges ? Number(form.charges) : 0,
+        name: form.name.trim() || undefined,
+        asset_class: form.asset_class || undefined,
+        sector: form.sector.trim() || undefined,
+      },
+      { onSuccess: onClose },
+    )
+  }
+
   return (
     <div className="space-y-4 mt-2">
-      <p className="text-sm text-muted-foreground">
-        Holdings are managed via <code className="text-xs bg-muted px-1 rounded">data/portfolio.yaml</code>.
-        Use the transaction journal below to record buys and sells.
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="symbol" className="text-xs">
+            Symbol *
+          </Label>
+          <Input
+            id="symbol"
+            className="h-8 text-sm uppercase"
+            placeholder="RELIANCE"
+            value={form.symbol}
+            onChange={(e) => setForm((s) => ({ ...s, symbol: e.target.value.toUpperCase() }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Type *</Label>
+          <Select value={form.type} onValueChange={(v) => setForm((s) => ({ ...s, type: v as TransactionType }))}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TXN_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value} className="text-sm">
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="quantity" className="text-xs">
+            Quantity *
+          </Label>
+          <Input
+            id="quantity"
+            type="number"
+            className="h-8 text-sm"
+            placeholder="10"
+            value={form.quantity}
+            onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="price" className="text-xs">
+            Price (₹) *
+          </Label>
+          <Input
+            id="price"
+            type="number"
+            className="h-8 text-sm"
+            placeholder="2500"
+            value={form.price}
+            onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="date" className="text-xs">
+            Date *
+          </Label>
+          <Input
+            id="date"
+            type="date"
+            className="h-8 text-sm"
+            value={form.date}
+            onChange={(e) => setForm((s) => ({ ...s, date: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="charges" className="text-xs">
+            Charges (₹)
+          </Label>
+          <Input
+            id="charges"
+            type="number"
+            className="h-8 text-sm"
+            placeholder="0"
+            value={form.charges}
+            onChange={(e) => setForm((s) => ({ ...s, charges: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Only needed if <span className="font-medium">{form.symbol || "this symbol"}</span> is a new holding:
       </p>
       <div className="grid grid-cols-2 gap-3">
-        {[
-          { id: "symbol", label: "Symbol" },
-          { id: "qty", label: "Quantity" },
-          { id: "price", label: "Buy Price (₹)" },
-          { id: "date", label: "Transaction Date" },
-          { id: "sector", label: "Sector" },
-          { id: "asset_class", label: "Asset Class" },
-        ].map((f) => (
-          <div key={f.id} className="space-y-1.5">
-            <Label htmlFor={f.id} className="text-xs">
-              {f.label}
-            </Label>
-            <Input
-              id={f.id}
-              className="h-8 text-sm"
-              placeholder={f.label}
-            />
-          </div>
-        ))}
+        <div className="space-y-1.5">
+          <Label htmlFor="name" className="text-xs">
+            Name
+          </Label>
+          <Input
+            id="name"
+            className="h-8 text-sm"
+            placeholder="Reliance Industries"
+            value={form.name}
+            onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Asset Class</Label>
+          <Select
+            value={form.asset_class}
+            onValueChange={(v) => setForm((s) => ({ ...s, asset_class: v ?? "" }))}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Select…" />
+            </SelectTrigger>
+            <SelectContent>
+              {ASSET_CLASSES.map((a) => (
+                <SelectItem key={a.value} value={a.value} className="text-sm">
+                  {a.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5 col-span-2">
+          <Label htmlFor="sector" className="text-xs">
+            Sector
+          </Label>
+          <Input
+            id="sector"
+            className="h-8 text-sm"
+            placeholder="Energy"
+            value={form.sector}
+            onChange={(e) => setForm((s) => ({ ...s, sector: e.target.value }))}
+          />
+        </div>
       </div>
-      <Button className="w-full h-8 text-sm mt-2">Save Holding</Button>
+
+      {error && (
+        <p className="text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-md">{error.message}</p>
+      )}
+
+      <Button
+        className="w-full h-8 text-sm mt-2"
+        disabled={!isValid || isPending}
+        onClick={handleSubmit}
+      >
+        {isPending ? "Saving…" : "Save Transaction"}
+      </Button>
     </div>
   )
 }

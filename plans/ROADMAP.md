@@ -82,10 +82,17 @@
 
 ---
 
-## Phase 4 — Portfolio Management UI (Planned 📋)
+## Phase 4 — Portfolio Management UI (In Progress 🚧)
 
-- [ ] Add/edit/delete holdings directly from UI
-- [ ] Add transactions from UI (buy, sell, SIP, dividend)
+- [x] Migrate portfolio storage from YAML to Postgres — `src/db_portfolio.py`,
+      DB-first reads with a YAML fallback, using the `Stock`/`Position`/
+      `Transaction` tables that already existed in `src/db/models.py` but
+      sat unused. One-time seed script: `scripts/seed_portfolio_from_yaml.py`
+- [x] Add transactions from UI (buy, sell, SIP, dividend, switch) —
+      `POST /api/portfolio/transactions`, "Add Transaction" button on the
+      Holdings page. Same endpoint creates a brand-new holding if the
+      symbol doesn't exist yet (name/asset_class required in that case)
+- [ ] Edit/delete holdings and transactions from UI
 - [ ] Import transactions from CSV (Zerodha, Groww format)
 - [ ] Holdings sorted by various columns
 - [ ] Holding detail page (full transaction history, price chart, fundamentals)

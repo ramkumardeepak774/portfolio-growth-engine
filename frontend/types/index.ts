@@ -69,6 +69,21 @@ export interface PortfolioGrowth {
   series: PortfolioGrowthPoint[]
 }
 
+export type TransactionType = "buy" | "sell" | "dividend" | "sip" | "switch"
+
+export interface AddTransactionRequest {
+  symbol: string
+  type: TransactionType
+  date: string
+  quantity: number
+  price: number
+  charges?: number
+  // Only required when `symbol` is a brand-new holding
+  name?: string
+  asset_class?: string
+  sector?: string
+}
+
 // ─── Market Data Types ────────────────────────────────────────────────────────
 
 export interface PricePoint {

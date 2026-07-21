@@ -14,7 +14,7 @@
 | ~~4~~ | ~~Deploy to Vercel + Railway~~ | Done — see Phase 5 in ROADMAP.md for URLs |
 | ~~5~~ | ~~PostgreSQL price cache~~ | Done — `src/price_cache.py`, upserts into Neon's `price_history` table |
 | ~~6~~ | ~~Real portfolio growth chart~~ | Done — `portfolio_value_series()` reconstructs real weighted value; growth/drawdown/benchmark/Beta/Alpha/Sharpe/Vol all use it now |
-| 7 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
+| ~~7~~ | ~~Add transaction from UI~~ | Done — portfolio storage migrated to Postgres, `POST /api/portfolio/transactions`, Holdings page form |
 | ~~8~~ | ~~Backend auth (`/auth/token`)~~ | Done — JWT via `src/auth.py`, all `/api/*` routes now gated |
 
 ---
@@ -48,5 +48,5 @@
 
 | # | Issue | Status |
 |---|---|---|
-| — | Portfolio growth chart uses top holding as proxy instead of real weighted value | Open |
+| — | ~~Portfolio growth chart uses top holding as proxy instead of real weighted value~~ | Fixed — `portfolio_value_series()` |
 | — | XIRR on frontend is client-side — needs actual transaction cashflows from API | Open |
