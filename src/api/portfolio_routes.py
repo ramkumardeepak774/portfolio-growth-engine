@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 
+from datetime import date
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from ..portfolio import load_portfolio
+from ..db_portfolio import PortfolioWriteError, add_transaction, get_portfolio as load_portfolio
 from ..analyzer import (
     asset_class_allocation,
     calculate_portfolio_cagr,
@@ -49,6 +51,46 @@ async def portfolio_holdings():
     portfolio = load_portfolio()
     df = holding_performance_table(portfolio)
     return df.to_dict(orient="records")
+
+
+class AddTransactionRequest(BaseModel):
+    symbol: str
+    type: str  # buy, sell, dividend, sip, switch
+    date: date
+    quantity: float
+    price: float
+    charges: float = 0.0
+    # Only required when `symbol` is a brand-new holding:
+    name: str | None = None
+    asset_class: str | None = None
+    sector: str | None = None
+
+
+@router.post("/transactions")
+async def create_transaction(req: AddTransactionRequest):
+    """Record a buy/sell/SIP/dividend/switch — creates the holding if `symbol` is new.
+
+    Writes go straight to Postgres, no YAML fallback: a write that silently
+    didn't persist would be worse than an error.
+    """
+    try:
+        add_transaction(
+            symbol=req.symbol,
+            txn_type=req.type,
+            txn_date=req.date,
+            quantity=req.quantity,
+            price=req.price,
+            charges=req.charges,
+            name=req.name,
+            asset_class=req.asset_class,
+            sector=req.sector,
+        )
+    except PortfolioWriteError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Failed to record transaction for %s", req.symbol)
+        raise HTTPException(503, "Could not save transaction — database unavailable")
+    return {"status": "ok"}
 
 
 @router.get("/allocation")

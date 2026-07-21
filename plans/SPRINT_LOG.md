@@ -131,6 +131,51 @@ price caching while doing it.
 
 ---
 
+## Week 5 — 21 Jul 2026
+
+### Goal
+Add transaction entry from the UI — closing out the last High Priority
+backlog item.
+
+### Done ✅
+- Migrated portfolio storage from YAML to Postgres. The `Stock`/`Position`/
+  `Transaction` tables already existed in `src/db/models.py` but nothing
+  used them — same pattern as the price-cache tables two weeks ago.
+  `src/db_portfolio.py` reads DB-first with a YAML fallback (so tests/CI
+  without a reachable Postgres keep working unchanged — verified both with
+  and without a local `.env`, 4.9s vs 71s+ depending on whether Neon is
+  actually reachable)
+- One-time seed script (`scripts/seed_portfolio_from_yaml.py`, idempotent)
+  — ran it against the real Neon DB, all 9 real holdings migrated and
+  verified byte-for-byte matching (`total_invested`/`total_value`/
+  `holdings_count` identical before and after)
+- `POST /api/portfolio/transactions` — records a buy/sell/SIP/dividend/
+  switch, creates the Stock+Position if the symbol is new (400 if
+  name/asset_class missing in that case), 503 if Postgres is unreachable
+  (no silent YAML fallback for writes — a write that didn't persist
+  should never look like it succeeded)
+- Wired up the "Add Transaction" form on the Holdings page (previously a
+  non-functional UI stub that just told users to hand-edit the YAML file)
+- 16 new backend tests (111 total) — mocked-session tests for
+  `add_transaction()`/`load_portfolio_from_db()` since a real SQLite
+  integration test isn't viable (the shared `Stock` model has a
+  Postgres-only JSONB column SQLite can't compile), plus API-level tests
+  for the new endpoint
+- Full write→read→cleanup cycle smoke-tested against the real Neon DB
+  three times (once per server session) — each time verified the DB
+  returned to its exact original state afterward
+
+### Blocked / Pending
+- Edit/delete holdings and transactions still needs UI
+- Goals are still YAML-only (not migrated — rarely edited, out of scope)
+- CSV import (Zerodha/Groww format) not started
+
+### Next Week
+- Medium priority backlog: CSV import, monthly returns heatmap, rolling
+  returns chart, holding detail page, tax P&L report
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

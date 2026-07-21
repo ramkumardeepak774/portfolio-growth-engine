@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { portfolioService } from "@/services/portfolio"
 import { marketDataService } from "@/services/market-data"
+import type { AddTransactionRequest } from "@/types"
 
 export const PORTFOLIO_KEYS = {
   summary: ["portfolio", "summary"] as const,
@@ -64,6 +65,20 @@ export function usePortfolioGrowth(period = "1y") {
     queryFn: () => portfolioService.getGrowth(period),
     staleTime: 60 * 60 * 1000, // 1 hour — historical data doesn't change often
     retry: 1,
+  })
+}
+
+export function useAddTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: AddTransactionRequest) => portfolioService.addTransaction(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.summary })
+      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.holdings })
+      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.allocation })
+      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.rebalance })
+      qc.invalidateQueries({ queryKey: ["portfolio", "growth"] })
+    },
   })
 }
 

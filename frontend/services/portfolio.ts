@@ -1,5 +1,6 @@
 import api from "@/lib/api"
 import type {
+  AddTransactionRequest,
   AllocationData,
   GoalProgress,
   HoldingRow,
@@ -36,6 +37,11 @@ export const portfolioService = {
 
   getGrowth: async (period = "1y"): Promise<PortfolioGrowth> => {
     const { data } = await api.get<PortfolioGrowth>("/api/portfolio/growth", { params: { period } })
+    return data
+  },
+
+  addTransaction: async (payload: AddTransactionRequest): Promise<{ status: string }> => {
+    const { data } = await api.post<{ status: string }>("/api/portfolio/transactions", payload)
     return data
   },
 }

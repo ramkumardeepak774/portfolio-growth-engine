@@ -289,8 +289,15 @@ CORS_ORIGINS=http://localhost:3000,https://your-app.vercel.app
 
 ## Portfolio Data Format
 
+Holdings/transactions live in Postgres (Neon), not `data/portfolio.yaml` —
+Railway's container filesystem is ephemeral, so anything written to that
+file would vanish on the next deploy. Reads are DB-first with a YAML
+fallback (`get_portfolio()` in `src/db_portfolio.py`), so `data/portfolio.yaml`
+still works as sample/seed data when no `DATABASE_URL` is configured (e.g.
+local dev without Postgres, or CI).
+
 ```yaml
-# data/portfolio.yaml
+# data/portfolio.yaml — used as seed data and as a DB-unavailable fallback
 holdings:
   - symbol: RELIANCE.NS
     name: Reliance Industries
@@ -307,6 +314,17 @@ goals:
   target_multiplier: 1000
   target_years: 20
 ```
+
+To migrate an edited `portfolio.yaml` into Postgres (safe to re-run — skips
+holdings already in the DB):
+```bash
+uv run python scripts/seed_portfolio_from_yaml.py
+```
+
+Once a holding exists in the DB, add further transactions via the API
+(`POST /api/portfolio/transactions`) or the "Add Transaction" button on the
+Holdings page — no more hand-editing YAML for day-to-day trades. Goals are
+still YAML-only for now.
 
 ---
 

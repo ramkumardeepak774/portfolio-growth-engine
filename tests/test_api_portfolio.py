@@ -139,3 +139,51 @@ class TestPortfolioGrowth:
     def test_requires_auth(self, unauthed_client):
         resp = unauthed_client.get("/api/portfolio/growth")
         assert resp.status_code == 401
+
+
+class TestCreateTransaction:
+    """Mocks add_transaction so this never hits Postgres."""
+
+    def test_valid_transaction_returns_ok(self, client, monkeypatch):
+        monkeypatch.setattr("src.api.portfolio_routes.add_transaction", lambda **kwargs: None)
+        resp = client.post(
+            "/api/portfolio/transactions",
+            json={"symbol": "RELIANCE", "type": "buy", "date": "2026-01-01", "quantity": 10, "price": 2500},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_write_error_returns_400(self, client, monkeypatch):
+        from src.db_portfolio import PortfolioWriteError
+
+        def raise_write_error(**kwargs):
+            raise PortfolioWriteError("name and asset_class are required")
+
+        monkeypatch.setattr("src.api.portfolio_routes.add_transaction", raise_write_error)
+        resp = client.post(
+            "/api/portfolio/transactions",
+            json={"symbol": "NEWCO", "type": "buy", "date": "2026-01-01", "quantity": 10, "price": 100},
+        )
+        assert resp.status_code == 400
+
+    def test_db_error_returns_503(self, client, monkeypatch):
+        def raise_db_error(**kwargs):
+            raise ConnectionError("db unreachable")
+
+        monkeypatch.setattr("src.api.portfolio_routes.add_transaction", raise_db_error)
+        resp = client.post(
+            "/api/portfolio/transactions",
+            json={"symbol": "RELIANCE", "type": "buy", "date": "2026-01-01", "quantity": 10, "price": 2500},
+        )
+        assert resp.status_code == 503
+
+    def test_invalid_body_returns_422(self, client):
+        resp = client.post("/api/portfolio/transactions", json={"symbol": "RELIANCE"})
+        assert resp.status_code == 422
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.post(
+            "/api/portfolio/transactions",
+            json={"symbol": "RELIANCE", "type": "buy", "date": "2026-01-01", "quantity": 10, "price": 2500},
+        )
+        assert resp.status_code == 401
