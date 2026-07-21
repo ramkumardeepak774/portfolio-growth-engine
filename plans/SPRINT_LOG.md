@@ -87,6 +87,50 @@ Phase 5 — deploy backend to Railway, frontend to Vercel, provision Neon.
 
 ---
 
+## Week 4 — 21 Jul 2026
+
+### Goal
+Fix the dashboard's growth/benchmark/drawdown charts and Beta/Alpha/Sharpe/
+Volatility — all of them were secretly built off a single top holding's
+price series standing in for the whole portfolio. Wire in Neon Postgres for
+price caching while doing it.
+
+### Done ✅
+- `analyzer.portfolio_value_series()` reconstructs real weighted portfolio
+  value over time from transaction history (quantity-at-date) × cached
+  Yahoo prices — direct-equity holdings only, documented limitation
+- `src/price_cache.py` — Postgres-backed price cache using the existing
+  (previously unused) `Stock`/`PriceHistory` ORM models, bulk upsert via
+  `ON CONFLICT`, falls back to a live uncached Yahoo fetch if Postgres is
+  unreachable
+- New `GET /api/portfolio/growth?period=` endpoint
+- Dashboard rewired: growth chart, benchmark-vs-NIFTY chart, drawdown
+  chart, and Beta/Alpha/Sharpe/Volatility tiles all consume the real
+  series now instead of one holding's price history
+- Caught and fixed a serious perf bug before it shipped: `get_sync_engine()`
+  created a brand-new engine + connection **per call**, and since the
+  growth endpoint calls it once per holding, a cold-cache request took
+  4m17s against Neon. Caching the engine (`@lru_cache`) brought it to ~7s
+- 9 new tests: 6 for `portfolio_value_series()` (mocked price source, no
+  network), 3 for the growth endpoint (auth gate, validation, mocked
+  series) — full suite green (95 backend + 57 frontend passing)
+
+### Blocked / Pending
+- Growth endpoint is ~6-7s even warm — acceptable for a personal dashboard
+  but not fast; further optimization (parallel per-holding fetches) would
+  help if this becomes annoying
+- NIFTY 50 benchmark data is still fetched live/uncached every time
+- Mutual funds, gold, FD/PPF/EPF/NPS, real estate excluded from the value
+  series entirely (no reliable daily price source) — portfolio_value only
+  reflects direct equity holdings, not the true multi-asset total
+
+### Next Week
+- Decide whether mutual fund NAV history is worth sourcing for the value
+  series, or leave it equity-only long-term
+- Backlog: CSV import, UI-based transaction entry, monthly returns heatmap
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

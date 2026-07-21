@@ -12,8 +12,8 @@
 | ~~2~~ | ~~Frontend unit tests (Vitest)~~ | Done — `frontend/lib/*.test.ts` (57 tests) |
 | ~~3~~ | ~~GitHub Actions CI~~ | Done — `.github/workflows/test.yml` |
 | ~~4~~ | ~~Deploy to Vercel + Railway~~ | Done — see Phase 5 in ROADMAP.md for URLs |
-| 5 | PostgreSQL price cache | Neon DB provisioned but unused — app still hits Yahoo Finance live |
-| 6 | Real portfolio growth chart | Currently using top holding as proxy — inaccurate |
+| ~~5~~ | ~~PostgreSQL price cache~~ | Done — `src/price_cache.py`, upserts into Neon's `price_history` table |
+| ~~6~~ | ~~Real portfolio growth chart~~ | Done — `portfolio_value_series()` reconstructs real weighted value; growth/drawdown/benchmark/Beta/Alpha/Sharpe/Vol all use it now |
 | 7 | Add transaction from UI | Holdings are YAML-only right now — needs UI |
 | ~~8~~ | ~~Backend auth (`/auth/token`)~~ | Done — JWT via `src/auth.py`, all `/api/*` routes now gated |
 

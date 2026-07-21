@@ -69,13 +69,13 @@
 
 ---
 
-## Phase 4 — Data & Analytics (Planned 📋)
+## Phase 4 — Data & Analytics (In Progress 🚧)
 
-- [ ] PostgreSQL integration for price caching (avoid repeated Yahoo API calls)
-- [ ] Neon PostgreSQL deployment (free tier)
-- [ ] Benchmark price cache (NIFTY 50, NIFTY Next 50, SENSEX)
-- [ ] Historical portfolio value reconstruction from transactions
-- [ ] Real portfolio growth chart (not just proxy from top holding)
+- [x] PostgreSQL integration for price caching — `src/price_cache.py`, Postgres-first with a live-Yahoo fallback if the DB is unreachable
+- [x] Neon PostgreSQL deployment (free tier)
+- [x] Historical portfolio value reconstruction from transactions — `analyzer.portfolio_value_series()`
+- [x] Real portfolio growth chart (not just proxy from top holding) — dashboard's growth/drawdown/benchmark charts and Beta/Alpha/Sharpe/Volatility tiles all use the real series now. Direct-equity holdings only for now — mutual funds/gold/FD/etc. have no reliable daily price series, so they're excluded from the reconstructed value (documented in `analyzer._PRICEABLE_ASSET_CLASSES`)
+- [ ] Benchmark price cache (NIFTY 50, NIFTY Next 50, SENSEX) — NIFTY 50 fetch is still live/uncached
 - [ ] XIRR calculation from actual transaction history on frontend
 - [ ] Monthly returns heatmap (calendar view)
 - [ ] Rolling returns chart (1Y, 3Y, 5Y rolling CAGR)

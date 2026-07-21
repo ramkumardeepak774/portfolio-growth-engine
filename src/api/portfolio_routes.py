@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from ..portfolio import load_portfolio
@@ -14,6 +14,7 @@ from ..analyzer import (
     calculate_portfolio_xirr,
     concentration_risk,
     holding_performance_table,
+    portfolio_value_series,
     sector_allocation,
 )
 from ..allocator import calculate_rebalance, get_current_allocation, suggest_monthly_sip_allocation
@@ -101,6 +102,15 @@ async def portfolio_goals():
         }
         for gp in goals
     ]
+
+
+@router.get("/growth")
+async def portfolio_growth(period: str = Query("1y", pattern="^(1mo|3mo|6mo|1y|2y|5y|max)$")):
+    """Real weighted portfolio value over time (direct-equity holdings only —
+    see analyzer.portfolio_value_series for why mutual funds/gold/etc. are excluded)."""
+    portfolio = load_portfolio()
+    series = portfolio_value_series(portfolio, period=period)
+    return {"period": period, "series": series}
 
 
 @router.get("/risk-report")
