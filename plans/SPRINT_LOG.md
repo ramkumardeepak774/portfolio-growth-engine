@@ -176,6 +176,29 @@ backlog item.
 
 ---
 
+## Week 5.1 — 22 Jul 2026
+
+### Goal
+Actually fix the Railway auto-deploy issue instead of nudging it manually
+after every merge (docs/growth-chart/transactions merges all needed a
+manual `railway up`).
+
+### Done ✅
+- Root cause: Railway's "Auto Deploy" setting under Service Settings →
+  Source is a dashboard-only toggle, invisible and unsettable via the CLI
+  or any API endpoint reachable with a personal token — same shape of
+  problem as the Vercel GitHub App install gap from two weeks ago. It was
+  off; turned on manually via the dashboard.
+- This commit is itself the test: if Railway auto-deploys it without a
+  manual `railway up`, the fix holds.
+
+### Next Week
+- Confirm this stays fixed across future merges (no more silent misses)
+- Medium priority backlog: CSV import, monthly returns heatmap, rolling
+  returns chart, holding detail page, tax P&L report
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY
