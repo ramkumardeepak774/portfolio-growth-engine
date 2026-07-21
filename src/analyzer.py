@@ -174,6 +174,80 @@ def concentration_risk(portfolio: Portfolio, top_n: int = 5) -> dict:
     }
 
 
+# Asset classes with a reliable daily price series on Yahoo Finance.
+# Mutual funds, gold, FD/PPF/EPF/NPS, real estate, and cash have no such
+# series, so they're excluded from the reconstructed value series below —
+# it reflects direct equity holdings only, not the full multi-asset portfolio.
+_PRICEABLE_ASSET_CLASSES = {
+    AssetClass.EQUITY_LARGE_CAP,
+    AssetClass.EQUITY_MID_CAP,
+    AssetClass.EQUITY_SMALL_CAP,
+    AssetClass.EQUITY_MICRO_CAP,
+}
+
+
+def _quantity_as_of(holding: Holding, as_of: date) -> float:
+    """Units held at close of `as_of`, reconstructed from transaction history."""
+    qty = 0.0
+    for t in holding.transactions:
+        if t.date > as_of:
+            continue
+        if t.type in (TransactionType.BUY, TransactionType.SIP):
+            qty += t.quantity
+        elif t.type == TransactionType.SELL:
+            qty -= t.quantity
+    return qty
+
+
+def portfolio_value_series(portfolio: Portfolio, period: str = "1y") -> list[dict]:
+    """Reconstruct real weighted portfolio value across a date range.
+
+    For each date, sums (quantity held at that date × close price on that
+    date) across priceable holdings. Quantity comes from transaction
+    history; price comes from the Postgres-cached Yahoo Finance series.
+    """
+    from .price_cache import get_price_history
+
+    price_series: dict[str, pd.Series] = {}
+    all_dates: set[date] = set()
+
+    for h in portfolio.holdings:
+        if h.asset_class not in _PRICEABLE_ASSET_CLASSES:
+            continue
+        df = get_price_history(h.symbol, h.asset_class, period=period)
+        if df is None or df.empty:
+            continue
+        df = df.copy()
+        df["Date"] = pd.to_datetime(df["Date"]).dt.date
+        series = df.set_index("Date")["Close"].sort_index()
+        price_series[h.symbol] = series
+        all_dates.update(series.index)
+
+    if not all_dates:
+        return []
+
+    rows = []
+    for d in sorted(all_dates):
+        total = 0.0
+        contributing = 0
+        for h in portfolio.holdings:
+            series = price_series.get(h.symbol)
+            if series is None:
+                continue
+            available = series[series.index <= d]
+            if available.empty:
+                continue
+            price = available.iloc[-1]
+            qty = _quantity_as_of(h, d)
+            if qty <= 0:
+                continue
+            total += qty * price
+            contributing += 1
+        if contributing > 0:
+            rows.append({"date": d.isoformat(), "value": round(total, 2)})
+    return rows
+
+
 def holding_performance_table(portfolio: Portfolio) -> pd.DataFrame:
     """Generate a DataFrame with per-holding performance metrics."""
     rows = []

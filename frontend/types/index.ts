@@ -59,6 +59,16 @@ export interface GoalProgress {
   completion_pct: number
 }
 
+export interface PortfolioGrowthPoint {
+  date: string
+  value: number
+}
+
+export interface PortfolioGrowth {
+  period: string
+  series: PortfolioGrowthPoint[]
+}
+
 // ─── Market Data Types ────────────────────────────────────────────────────────
 
 export interface PricePoint {

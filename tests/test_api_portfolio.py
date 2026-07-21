@@ -117,3 +117,25 @@ class TestPortfolioGoals:
             goal = body[0]
             for key in ("name", "target_multiplier", "on_track", "completion_pct"):
                 assert key in goal
+
+
+class TestPortfolioGrowth:
+    """Mocks portfolio_value_series so this never hits live Yahoo Finance or Postgres."""
+
+    def test_returns_series_for_default_period(self, client, monkeypatch):
+        fake_series = [{"date": "2026-01-01", "value": 1000.0}, {"date": "2026-01-02", "value": 1010.0}]
+        monkeypatch.setattr("src.api.portfolio_routes.portfolio_value_series", lambda portfolio, period: fake_series)
+
+        resp = client.get("/api/portfolio/growth")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["period"] == "1y"
+        assert body["series"] == fake_series
+
+    def test_rejects_invalid_period(self, client):
+        resp = client.get("/api/portfolio/growth?period=3days")
+        assert resp.status_code == 422
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.get("/api/portfolio/growth")
+        assert resp.status_code == 401

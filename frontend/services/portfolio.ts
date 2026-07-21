@@ -3,6 +3,7 @@ import type {
   AllocationData,
   GoalProgress,
   HoldingRow,
+  PortfolioGrowth,
   PortfolioSummary,
   RebalanceAction,
 } from "@/types"
@@ -30,6 +31,11 @@ export const portfolioService = {
 
   getGoals: async (): Promise<GoalProgress[]> => {
     const { data } = await api.get<GoalProgress[]>("/api/portfolio/goals")
+    return data
+  },
+
+  getGrowth: async (period = "1y"): Promise<PortfolioGrowth> => {
+    const { data } = await api.get<PortfolioGrowth>("/api/portfolio/growth", { params: { period } })
     return data
   },
 }

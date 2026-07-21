@@ -27,7 +27,7 @@ async def get_fundamentals(symbol: str):
 
 
 @router.get("/prices/{symbol}")
-async def get_prices(symbol: str, period: str = Query("1y", regex="^(1mo|3mo|6mo|1y|2y|5y|max)$")):
+async def get_prices(symbol: str, period: str = Query("1y", pattern="^(1mo|3mo|6mo|1y|2y|5y|max)$")):
     """Fetch historical prices."""
     collector = YahooCollector()
     df = collector.collect_prices(symbol.upper(), period=period)

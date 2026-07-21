@@ -9,7 +9,7 @@ import { BenchmarkChart } from "@/components/charts/benchmark-chart"
 import { SectorPieChart } from "@/components/charts/sector-pie-chart"
 import { DrawdownChart } from "@/components/charts/drawdown-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { usePortfolioSummary, useHoldings, useAllocation, useStockPrices } from "@/hooks/use-portfolio"
+import { usePortfolioSummary, useHoldings, useAllocation, useStockPrices, usePortfolioGrowth } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, formatRatio } from "@/lib/format"
 import {
   toDailyReturns,
@@ -30,55 +30,55 @@ export default function DashboardPage() {
 
   // Fetch NIFTY 50 as benchmark (NSE: ^NSEI)
   const { data: niftyPrices } = useStockPrices("^NSEI", "1y")
-  // Use top holding for portfolio growth proxy
-  const topHolding = holdings?.[0]?.symbol
-  const { data: topPrices } = useStockPrices(topHolding ?? "", "1y")
+  // Real weighted portfolio value over time (direct-equity holdings — see
+  // portfolio_value_series on the backend for why MFs/gold/etc. aren't included)
+  const { data: growth, isLoading: growthLoading } = usePortfolioGrowth("1y")
 
   // Build comparison chart data (indexed to 100)
   const comparisonData = useMemo(() => {
-    if (!topPrices?.length || !niftyPrices?.length) return []
-    const len = Math.min(topPrices.length, niftyPrices.length)
-    const base1 = topPrices[0].Close
+    const series = growth?.series
+    if (!series?.length || !niftyPrices?.length) return []
+    const len = Math.min(series.length, niftyPrices.length)
+    const base1 = series[0].value
     const base2 = niftyPrices[0].Close
     return Array.from({ length: len }, (_, i) => ({
-      date: topPrices[i].Date.split("T")[0],
-      portfolio: ((topPrices[i].Close - base1) / base1) * 100,
+      date: series[i].date,
+      portfolio: ((series[i].value - base1) / base1) * 100,
       benchmark: ((niftyPrices[i].Close - base2) / base2) * 100,
     }))
-  }, [topPrices, niftyPrices])
+  }, [growth, niftyPrices])
 
-  // Build portfolio growth chart (from top holding as proxy)
+  // Build portfolio growth chart (real weighted value, not a proxy)
   const growthData = useMemo(() => {
-    if (!topPrices?.length || !summary) return []
-    return topPrices.map((p) => ({
-      date: p.Date.split("T")[0],
-      value: summary.total_value, // approximate — real portfolio value would need weighted calc
-    }))
-  }, [topPrices, summary])
+    if (!growth?.series?.length) return []
+    return growth.series.map((p) => ({ date: p.date, value: p.value }))
+  }, [growth])
 
   // Build drawdown data
   const drawdownData = useMemo(() => {
-    if (!topPrices?.length) return []
-    const values = topPrices.map((p) => p.Close)
+    const series = growth?.series
+    if (!series?.length) return []
+    const values = series.map((p) => p.value)
     return toDrawdownSeries(values).map((d, i) => ({
-      date: topPrices[i]?.Date.split("T")[0] ?? String(i),
+      date: series[i]?.date ?? String(i),
       drawdown: d.drawdown,
     }))
-  }, [topPrices])
+  }, [growth])
 
   // Calculate analytics
   const analytics = useMemo(() => {
-    if (!topPrices?.length || !niftyPrices?.length) return null
-    const pReturns = toDailyReturns(topPrices.map((p) => p.Close))
+    const series = growth?.series
+    if (!series?.length || !niftyPrices?.length) return null
+    const pReturns = toDailyReturns(series.map((p) => p.value))
     const bReturns = toDailyReturns(niftyPrices.map((p) => p.Close))
     const vol = calcVolatility(pReturns)
     const beta = calcBeta(pReturns, bReturns)
     const cagr = summary?.cagr ?? 0
     const alpha = beta !== null ? calcAlpha(cagr, 12, beta) : null
     const sharpe = vol !== null ? calcSharpe(cagr, 6.5, vol) : null
-    const maxDD = calcMaxDrawdown(topPrices.map((p) => p.Close))
+    const maxDD = calcMaxDrawdown(series.map((p) => p.value))
     return { vol, beta, alpha, sharpe, maxDD }
-  }, [topPrices, niftyPrices, summary])
+  }, [growth, niftyPrices, summary])
 
   // Build sector pie data
   const sectorData = useMemo(() => {
@@ -185,6 +185,16 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* Portfolio value over time */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Portfolio Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PortfolioGrowthChart data={growthData} loading={growthLoading} height={260} />
+          </CardContent>
+        </Card>
+
         {/* Charts row 1 */}
         <div className="grid xl:grid-cols-2 gap-4">
           <Card>
@@ -192,7 +202,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-semibold">Portfolio vs NIFTY 50</CardTitle>
             </CardHeader>
             <CardContent>
-              <BenchmarkChart data={comparisonData} loading={!topPrices || !niftyPrices} />
+              <BenchmarkChart data={comparisonData} loading={growthLoading || !niftyPrices} />
             </CardContent>
           </Card>
 
@@ -213,7 +223,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-semibold">Drawdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <DrawdownChart data={drawdownData} loading={!topPrices} />
+              <DrawdownChart data={drawdownData} loading={growthLoading} />
             </CardContent>
           </Card>
 

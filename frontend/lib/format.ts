@@ -45,7 +45,7 @@ export function formatCompact(value: number): string {
 }
 
 /** Format a ratio (e.g. Sharpe, Beta) */
-export function formatRatio(value: number | null, decimals = 2): string {
+export function formatRatio(value: number | null | undefined, decimals = 2): string {
   if (value === null || value === undefined) return "—"
   return value.toFixed(decimals)
 }
