@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 
+from dataclasses import asdict
 from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 
+from ..csv_import import commit_import, parse_holdings_csv
 from ..db_portfolio import PortfolioWriteError, add_transaction, get_portfolio as load_portfolio
 from ..analyzer import (
     asset_class_allocation,
@@ -91,6 +93,33 @@ async def create_transaction(req: AddTransactionRequest):
         logger.exception("Failed to record transaction for %s", req.symbol)
         raise HTTPException(503, "Could not save transaction — database unavailable")
     return {"status": "ok"}
+
+
+@router.post("/import/csv")
+async def import_holdings_csv(file: UploadFile = File(...), dry_run: bool = Query(True)):
+    """Bulk-import a Zerodha Kite Holdings export.
+
+    This is a snapshot export (no trade dates), so each row becomes a
+    single synthetic buy transaction dated today at average cost. Defaults
+    to dry_run=true — call again with dry_run=false to actually commit
+    once the preview looks right.
+    """
+    content = (await file.read()).decode("utf-8-sig")
+    try:
+        result = parse_holdings_csv(content) if dry_run else commit_import(content)
+    except PortfolioWriteError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("CSV import failed")
+        raise HTTPException(503, "Could not process import — database unavailable")
+
+    return {
+        "dry_run": dry_run,
+        "imported_count": 0 if dry_run else len(result.rows),
+        "new_symbols": result.new_symbols,
+        "rows": [asdict(r) for r in result.rows],
+        "errors": [asdict(e) for e in result.errors],
+    }
 
 
 @router.get("/allocation")

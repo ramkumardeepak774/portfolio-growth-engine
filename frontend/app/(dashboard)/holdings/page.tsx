@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type ChangeEvent } from "react"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -30,10 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useHoldings, useAddTransaction } from "@/hooks/use-portfolio"
+import { useHoldings, useAddTransaction, useImportCsv } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, pnlColor } from "@/lib/format"
-import { Plus, Search, TrendingUp, TrendingDown } from "lucide-react"
-import type { HoldingRow, TransactionType } from "@/types"
+import { Plus, Search, TrendingUp, TrendingDown, Upload } from "lucide-react"
+import type { HoldingRow, ImportCsvResponse, TransactionType } from "@/types"
 
 const TXN_TYPES: { value: TransactionType; label: string }[] = [
   { value: "buy", label: "Buy" },
@@ -126,6 +126,7 @@ export default function HoldingsPage() {
   const { data: holdings, isLoading } = useHoldings()
   const [search, setSearch] = useState("")
   const [addOpen, setAddOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const filtered = useMemo(() => {
     if (!holdings) return []
@@ -194,6 +195,17 @@ export default function HoldingsPage() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
+                <Dialog open={importOpen} onOpenChange={setImportOpen}>
+                  <DialogTrigger className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 h-8 text-xs font-medium transition-colors hover:bg-muted">
+                    <Upload className="size-3.5" /> Import CSV
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Import Holdings from Zerodha</DialogTitle>
+                    </DialogHeader>
+                    <ImportCsvForm onClose={() => setImportOpen(false)} />
+                  </DialogContent>
+                </Dialog>
                 <Dialog open={addOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground px-2.5 h-8 text-xs font-medium transition-colors hover:bg-primary/90">
                     <Plus className="size-3.5" /> Add Transaction
@@ -422,6 +434,141 @@ function AddTransactionForm({ onClose }: { onClose: () => void }) {
       >
         {isPending ? "Saving…" : "Save Transaction"}
       </Button>
+    </div>
+  )
+}
+
+// ── Import CSV form — Zerodha Kite "Holdings" export (Console → Portfolio
+// → Holdings → Download). It's a current snapshot, not a trade history, so
+// each row becomes one synthetic "buy" transaction dated today at average
+// cost — CAGR/XIRR since-inception will read as ~0 until real transaction
+// history exists. Preview (dry run) before committing. ──────────────────
+function ImportCsvForm({ onClose }: { onClose: () => void }) {
+  const { mutate, isPending, error, reset } = useImportCsv()
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<ImportCsvResponse | null>(null)
+  const [result, setResult] = useState<ImportCsvResponse | null>(null)
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFile(e.target.files?.[0] ?? null)
+    setPreview(null)
+    setResult(null)
+    reset()
+  }
+
+  const handlePreview = () => {
+    if (!file) return
+    mutate({ file, dryRun: true }, { onSuccess: setPreview })
+  }
+
+  const handleConfirm = () => {
+    if (!file) return
+    mutate({ file, dryRun: false }, { onSuccess: setResult })
+  }
+
+  if (result) {
+    return (
+      <div className="space-y-3 mt-2">
+        <p className="text-sm">
+          Imported <span className="font-semibold">{result.imported_count}</span> holding
+          {result.imported_count === 1 ? "" : "s"}.
+        </p>
+        {result.new_symbols.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            New holdings (asset class auto-guessed — double-check these):{" "}
+            {result.new_symbols.join(", ")}
+          </p>
+        )}
+        {result.errors.length > 0 && (
+          <div className="text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-md space-y-1">
+            {result.errors.map((e) => (
+              <p key={e.symbol}>
+                {e.symbol}: {e.message}
+              </p>
+            ))}
+          </div>
+        )}
+        <Button className="w-full h-8 text-sm" onClick={onClose}>
+          Done
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 mt-2">
+      <p className="text-xs text-muted-foreground">
+        Upload the Holdings CSV from Kite (Console → Portfolio → Holdings → Download). This is a
+        current snapshot, not full trade history — each row becomes one buy transaction dated
+        today at average cost, so CAGR/XIRR since inception won&apos;t be accurate until real
+        transaction history exists for these holdings.
+      </p>
+
+      <Input type="file" accept=".csv" className="h-8 text-sm" onChange={handleFileChange} />
+
+      {preview && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {preview.rows.length} holding{preview.rows.length === 1 ? "" : "s"} will be imported
+            {preview.new_symbols.length > 0 && ` (${preview.new_symbols.length} new)`}.
+          </p>
+          <div className="max-h-48 overflow-y-auto rounded-md border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Symbol</TableHead>
+                  <TableHead className="text-xs">Qty</TableHead>
+                  <TableHead className="text-xs">Avg Cost</TableHead>
+                  <TableHead className="text-xs"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {preview.rows.map((r) => (
+                  <TableRow key={r.symbol}>
+                    <TableCell className="text-xs">{r.symbol}</TableCell>
+                    <TableCell className="text-xs">{r.quantity}</TableCell>
+                    <TableCell className="text-xs">{formatINR(r.avg_cost)}</TableCell>
+                    <TableCell>
+                      {r.is_new_holding && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          New — {r.inferred_asset_class}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {preview.errors.length > 0 && (
+            <div className="text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-md space-y-1">
+              {preview.errors.map((e) => (
+                <p key={e.row}>
+                  Row {e.row} ({e.symbol}): {e.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-400 bg-red-400/10 px-3 py-2 rounded-md">{error.message}</p>
+      )}
+
+      {!preview ? (
+        <Button className="w-full h-8 text-sm" disabled={!file || isPending} onClick={handlePreview}>
+          {isPending ? "Reading…" : "Preview"}
+        </Button>
+      ) : (
+        <Button
+          className="w-full h-8 text-sm"
+          disabled={isPending || preview.rows.length === 0}
+          onClick={handleConfirm}
+        >
+          {isPending ? "Importing…" : `Confirm Import (${preview.rows.length})`}
+        </Button>
+      )}
     </div>
   )
 }

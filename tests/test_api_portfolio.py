@@ -187,3 +187,70 @@ class TestCreateTransaction:
             json={"symbol": "RELIANCE", "type": "buy", "date": "2026-01-01", "quantity": 10, "price": 2500},
         )
         assert resp.status_code == 401
+
+
+SAMPLE_HOLDINGS_CSV = (
+    '"Instrument","Qty.","Avg. cost","LTP","Invested","Cur. val","P&L","Net chg.","Day chg.",""\n'
+    '"RELIANCE",50,1362.6,1288.6,68130,64430,-3700,-5.43,-1.16,""\n'
+)
+
+
+class TestImportCsv:
+    """Mocks the csv_import functions so this never hits Postgres."""
+
+    def test_dry_run_does_not_import(self, client, monkeypatch):
+        from src.csv_import import ImportResult, ImportRow
+
+        fake_result = ImportResult(
+            rows=[ImportRow(symbol="RELIANCE", quantity=50, avg_cost=1362.6, current_price=1288.6, is_new_holding=False)],
+            errors=[],
+        )
+        monkeypatch.setattr("src.api.portfolio_routes.parse_holdings_csv", lambda text: fake_result)
+
+        resp = client.post(
+            "/api/portfolio/import/csv?dry_run=true",
+            files={"file": ("holdings.csv", SAMPLE_HOLDINGS_CSV, "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["dry_run"] is True
+        assert body["imported_count"] == 0
+        assert len(body["rows"]) == 1
+
+    def test_commit_imports_and_reports_new_symbols(self, client, monkeypatch):
+        from src.csv_import import ImportResult, ImportRow
+
+        fake_result = ImportResult(
+            rows=[ImportRow(symbol="RELIANCE", quantity=50, avg_cost=1362.6, current_price=1288.6, is_new_holding=True, inferred_name="RELIANCE", inferred_asset_class="equity_large_cap")],
+            errors=[],
+        )
+        monkeypatch.setattr("src.api.portfolio_routes.commit_import", lambda text: fake_result)
+
+        resp = client.post(
+            "/api/portfolio/import/csv?dry_run=false",
+            files={"file": ("holdings.csv", SAMPLE_HOLDINGS_CSV, "text/csv")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["imported_count"] == 1
+        assert body["new_symbols"] == ["RELIANCE"]
+
+    def test_bad_csv_returns_400(self, client, monkeypatch):
+        from src.db_portfolio import PortfolioWriteError
+
+        def raise_write_error(text):
+            raise PortfolioWriteError("CSV is missing expected columns")
+
+        monkeypatch.setattr("src.api.portfolio_routes.parse_holdings_csv", raise_write_error)
+        resp = client.post(
+            "/api/portfolio/import/csv",
+            files={"file": ("bad.csv", "not,a,valid,export\n", "text/csv")},
+        )
+        assert resp.status_code == 400
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.post(
+            "/api/portfolio/import/csv",
+            files={"file": ("holdings.csv", SAMPLE_HOLDINGS_CSV, "text/csv")},
+        )
+        assert resp.status_code == 401

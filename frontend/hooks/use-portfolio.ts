@@ -3,6 +3,14 @@ import { portfolioService } from "@/services/portfolio"
 import { marketDataService } from "@/services/market-data"
 import type { AddTransactionRequest } from "@/types"
 
+function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.summary })
+  qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.holdings })
+  qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.allocation })
+  qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.rebalance })
+  qc.invalidateQueries({ queryKey: ["portfolio", "growth"] })
+}
+
 export const PORTFOLIO_KEYS = {
   summary: ["portfolio", "summary"] as const,
   holdings: ["portfolio", "holdings"] as const,
@@ -72,12 +80,18 @@ export function useAddTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: AddTransactionRequest) => portfolioService.addTransaction(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.summary })
-      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.holdings })
-      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.allocation })
-      qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.rebalance })
-      qc.invalidateQueries({ queryKey: ["portfolio", "growth"] })
+    onSuccess: () => invalidatePortfolioQueries(qc),
+  })
+}
+
+/** dryRun=true previews without writing; dryRun=false commits and invalidates the portfolio queries. */
+export function useImportCsv() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) =>
+      portfolioService.importCsv(file, dryRun),
+    onSuccess: (_data, variables) => {
+      if (!variables.dryRun) invalidatePortfolioQueries(qc)
     },
   })
 }
