@@ -207,6 +207,50 @@ manual `railway up`).
 
 ---
 
+## Week 6 — 22 Jul 2026
+
+### Goal
+CSV import from Zerodha, closing out the Railway deploy saga first.
+
+### Done ✅
+- Railway auto-deploy: dashboard toggle didn't fix it either (verified
+  with a real merge, 3+ min, nothing triggered). Gave up on Railway's own
+  GitHub integration entirely — deploys now run from our own CI
+  (`deploy-backend` job in `.github/workflows/test.yml`, `railway up`
+  after tests pass, project-scoped `RAILWAY_TOKEN` secret). First attempt
+  failed too (`curl | sh` choked on the installer's bash syntax under
+  POSIX dash) — fixed with `| bash`. Confirmed working end-to-end on the
+  next real merge: push → tests → deploy → live, zero manual intervention.
+- `POST /api/portfolio/import/csv` — bulk-import from a Zerodha Kite
+  Holdings export (Console → Portfolio → Holdings → Download). This is a
+  current-snapshot export with no trade dates, so each row becomes one
+  synthetic buy transaction dated today at average cost (LTP sets
+  current_price directly, so P&L/current value are accurate immediately —
+  it's only CAGR/XIRR since-inception that reads as ~0 until real
+  transaction history exists). New symbols get asset_class guessed via
+  simple heuristics (ELSS→mf_elss, "Fund"→mf_equity, GOLD/SILVER→gold,
+  else equity_large_cap) and flagged in the response for review.
+  Dry-run preview before commit.
+- "Import CSV" dialog on the Holdings page — file picker, preview table,
+  confirm. Verified end-to-end against the user's real 25-holding export.
+- 15 new tests (126 total) — CSV parser edge cases (missing columns,
+  unparseable rows, blank rows) and API-level auth/validation/shape.
+- Discussed Kite Connect (live sync instead of manual export) — parked:
+  ₹2,000/month + GST, and access tokens expire every 24h so it's not a
+  set-and-forget connection either. CSV import covers the need for free.
+
+### Blocked / Pending
+- Tradebook import (real trade history/dates) not built — only the
+  Holdings snapshot format, so CAGR/XIRR on newly-imported holdings won't
+  be accurate until that exists
+- Edit/delete holdings and transactions still needs UI
+
+### Next Week
+- Remaining medium priority: monthly returns heatmap, rolling returns
+  chart, holding detail page, tax P&L report
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

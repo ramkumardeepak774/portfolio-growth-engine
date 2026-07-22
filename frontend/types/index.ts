@@ -84,6 +84,30 @@ export interface AddTransactionRequest {
   sector?: string
 }
 
+export interface ImportRow {
+  symbol: string
+  quantity: number
+  avg_cost: number
+  current_price: number
+  is_new_holding: boolean
+  inferred_name: string | null
+  inferred_asset_class: string | null
+}
+
+export interface ImportRowError {
+  row: number
+  symbol: string
+  message: string
+}
+
+export interface ImportCsvResponse {
+  dry_run: boolean
+  imported_count: number
+  new_symbols: string[]
+  rows: ImportRow[]
+  errors: ImportRowError[]
+}
+
 // ─── Market Data Types ────────────────────────────────────────────────────────
 
 export interface PricePoint {

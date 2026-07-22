@@ -91,8 +91,13 @@ def add_transaction(
     name: str | None = None,
     asset_class: str | None = None,
     sector: str | None = None,
+    current_price: float | None = None,
 ) -> None:
-    """Record a transaction, creating the Stock/Position if this is a new holding."""
+    """Record a transaction, creating the Stock/Position if this is a new holding.
+
+    `current_price`, if given, updates Position.current_price (e.g. from a
+    broker export's LTP column) — otherwise it's left as whatever it was.
+    """
     symbol = symbol.upper().strip()
     try:
         parsed_type = TxnType(txn_type)
@@ -123,6 +128,9 @@ def add_transaction(
             session.flush()
         elif not position.is_active:
             position.is_active = True
+
+        if current_price is not None:
+            position.current_price = current_price
 
         amount = quantity * price + charges
         session.add(

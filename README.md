@@ -335,6 +335,22 @@ Once a holding exists in the DB, add further transactions via the API
 Holdings page — no more hand-editing YAML for day-to-day trades. Goals are
 still YAML-only for now.
 
+### Bulk import from Zerodha
+
+Console → Portfolio → Holdings → Download gives a current-snapshot CSV
+(quantity, average cost, LTP — no trade dates). Upload it via the "Import
+CSV" button on the Holdings page, or `POST /api/portfolio/import/csv`
+directly. Since there's no trade history in that export, each row becomes
+one synthetic buy transaction dated today at your average cost — current
+value/P&L are accurate right away (LTP sets the current price), but
+CAGR/XIRR since inception will read as ~0 until real transaction history
+exists for that holding. New symbols get their asset class guessed
+(ELSS→`mf_elss`, "Fund"→`mf_equity`, GOLD/SILVER→`gold`, else
+`equity_large_cap`) and listed in the response so you know to double-check
+them — there's no edit-holding UI yet to fix a wrong guess in-app.
+Defaults to a dry-run preview (`?dry_run=true`); call again with
+`dry_run=false` to actually commit.
+
 ---
 
 ## Contributing

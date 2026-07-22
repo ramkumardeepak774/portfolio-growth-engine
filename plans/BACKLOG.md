@@ -23,7 +23,7 @@
 
 | # | Item | Why |
 |---|---|---|
-| 5 | CSV import (Zerodha format) | Easier to onboard real data |
+| ~~5~~ | ~~CSV import (Zerodha format)~~ | Done — `POST /api/portfolio/import/csv`, Kite Holdings export, dry-run preview + confirm |
 | 6 | Monthly returns heatmap | Great for visualising seasonality |
 | 7 | Rolling returns chart | Shows consistency over time |
 | 8 | Holding detail page | Click a holding → see full history + chart |

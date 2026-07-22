@@ -4,6 +4,7 @@ import type {
   AllocationData,
   GoalProgress,
   HoldingRow,
+  ImportCsvResponse,
   PortfolioGrowth,
   PortfolioSummary,
   RebalanceAction,
@@ -42,6 +43,21 @@ export const portfolioService = {
 
   addTransaction: async (payload: AddTransactionRequest): Promise<{ status: string }> => {
     const { data } = await api.post<{ status: string }>("/api/portfolio/transactions", payload)
+    return data
+  },
+
+  importCsv: async (file: File, dryRun: boolean): Promise<ImportCsvResponse> => {
+    const form = new FormData()
+    form.append("file", file)
+    // Must unset (not override) the axios instance's default JSON
+    // Content-Type — a literal "multipart/form-data" string lacks the
+    // boundary parameter the server needs; letting axios set it itself
+    // (from the FormData) gets that right.
+    const { data } = await api.post<ImportCsvResponse>(
+      "/api/portfolio/import/csv",
+      form,
+      { params: { dry_run: dryRun }, headers: { "Content-Type": undefined } },
+    )
     return data
   },
 }

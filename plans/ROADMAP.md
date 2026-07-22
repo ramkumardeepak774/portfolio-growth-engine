@@ -92,8 +92,18 @@
       `POST /api/portfolio/transactions`, "Add Transaction" button on the
       Holdings page. Same endpoint creates a brand-new holding if the
       symbol doesn't exist yet (name/asset_class required in that case)
+- [x] Import holdings from CSV — `POST /api/portfolio/import/csv`, Zerodha
+      Kite Holdings export (Console → Portfolio → Holdings → Download).
+      It's a current-snapshot export (no trade dates), so each row becomes
+      one synthetic buy transaction dated today at average cost — accurate
+      current value/P&L immediately, but CAGR/XIRR since-inception reads
+      as ~0 until real transaction history exists. New symbols get
+      name/asset_class heuristically guessed (ELSS→mf_elss, "Fund"→
+      mf_equity, GOLD/SILVER→gold, else equity_large_cap) and flagged in
+      the response for manual review. Dry-run preview before commit.
 - [ ] Edit/delete holdings and transactions from UI
-- [ ] Import transactions from CSV (Zerodha, Groww format)
+- [ ] Import a Tradebook export (not just Holdings) for real transaction
+      history/dates instead of the synthetic-buy-at-average-cost workaround
 - [ ] Holdings sorted by various columns
 - [ ] Holding detail page (full transaction history, price chart, fundamentals)
 - [ ] SIP tracker — are your SIPs on schedule?
@@ -151,6 +161,11 @@ Gaps surfaced during deployment — now closed (see Phase 5.1 below):
 - Mutual fund overlap checker
 - Compare two portfolios side by side
 - Export to PDF / Excel
+- Kite Connect live sync (auto-pull holdings/orders instead of CSV export)
+  — costs ₹2,000/month + GST to Zerodha, and access tokens expire every
+  24h (daily re-login required, not a set-and-forget connection). CSV
+  import covers the same need for free; revisit only if the manual-export
+  friction becomes a real problem
 
 ---
 
