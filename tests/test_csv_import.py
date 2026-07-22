@@ -132,3 +132,25 @@ class TestCommitImport:
         assert result.errors[0].symbol == "RELIANCE"
         assert "RELIANCE" not in {r.symbol for r in result.rows}
         assert len(result.rows) == 2
+
+    def test_unexpected_db_error_on_one_row_does_not_abort_the_batch(self, monkeypatch):
+        """Regression test: a StringDataRightTruncation (or any non-PortfolioWriteError)
+        on one row used to propagate uncaught and kill the whole import mid-batch,
+        silently leaving later rows unimported with no error reported for any of them."""
+        _mock_existing_symbols(monkeypatch, set())
+        calls = []
+
+        def fake_add_transaction(**kwargs):
+            calls.append(kwargs["symbol"])
+            if kwargs["symbol"] == "GOLDBEES":
+                raise RuntimeError("value too long for type character varying(30)")
+
+        monkeypatch.setattr("src.csv_import.add_transaction", fake_add_transaction)
+
+        result = commit_import(SAMPLE_CSV)
+
+        # every row was attempted, not just the ones before the failure
+        assert calls == ["GOLDBEES", "RELIANCE", "QUANT ELSS TAX SAVER FUND"]
+        assert len(result.errors) == 1
+        assert result.errors[0].symbol == "GOLDBEES"
+        assert len(result.rows) == 2

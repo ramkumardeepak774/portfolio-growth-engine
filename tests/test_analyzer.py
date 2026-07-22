@@ -89,6 +89,15 @@ class TestCalculateXirr:
         result = calculate_xirr(holding)
         assert result is not None
 
+    def test_same_day_buy_and_valuation_returns_none_not_inf(self, make_holding):
+        """Regression test: XIRR is undefined with zero elapsed time between
+        cashflows (e.g. a CSV-imported holding bought "today" with current
+        value also dated today). pyxirr returns inf rather than raising —
+        that broke JSON serialization in production before this was guarded."""
+        holding = make_holding(buy_price=100, quantity=10, current_price=150, years_ago=0)
+        result = calculate_xirr(holding)
+        assert result is None
+
 
 class TestPortfolioCagrAndXirr:
     def test_portfolio_cagr_uses_earliest_holding_date(self, sample_portfolio):
@@ -108,6 +117,12 @@ class TestPortfolioCagrAndXirr:
 
     def test_portfolio_xirr_none_for_empty_portfolio(self, empty_portfolio):
         assert calculate_portfolio_xirr(empty_portfolio) is None
+
+    def test_portfolio_xirr_same_day_only_returns_none_not_inf(self, make_holding):
+        from src.models import Portfolio
+
+        portfolio = Portfolio(holdings=[make_holding(buy_price=100, quantity=10, current_price=150, years_ago=0)])
+        assert calculate_portfolio_xirr(portfolio) is None
 
 
 class TestAssetClassAllocation:
