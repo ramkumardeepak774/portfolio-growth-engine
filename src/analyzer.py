@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date
 from typing import Optional
 
@@ -53,7 +54,11 @@ def calculate_xirr(holding: Holding) -> Optional[float]:
 
     try:
         result = xirr(dates, amounts)
-        if result is not None:
+        # XIRR is undefined when all cashflows land on the same date (zero
+        # elapsed time) — pyxirr returns inf/nan rather than raising, and
+        # that isn't JSON-serializable, so it must be treated as "can't
+        # compute" like any other failure.
+        if result is not None and math.isfinite(result):
             return result * 100
     except Exception:
         pass
@@ -103,7 +108,11 @@ def calculate_portfolio_xirr(portfolio: Portfolio) -> Optional[float]:
 
     try:
         result = xirr(dates, amounts)
-        if result is not None:
+        # XIRR is undefined when all cashflows land on the same date (zero
+        # elapsed time) — pyxirr returns inf/nan rather than raising, and
+        # that isn't JSON-serializable, so it must be treated as "can't
+        # compute" like any other failure.
+        if result is not None and math.isfinite(result):
             return result * 100
     except Exception:
         pass

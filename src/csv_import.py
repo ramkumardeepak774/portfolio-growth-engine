@@ -18,11 +18,14 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from dataclasses import dataclass
 from datetime import date
 
 from .db.engine import get_sync_session_factory
 from .db.models import Stock
+
+logger = logging.getLogger(__name__)
 from .db_portfolio import PortfolioWriteError, add_transaction
 
 REQUIRED_COLUMNS = {"Instrument", "Qty.", "Avg. cost", "LTP"}
@@ -136,6 +139,13 @@ def commit_import(csv_text: str) -> ImportResult:
                 asset_class=row.inferred_asset_class,
             )
         except PortfolioWriteError as e:
+            result.errors.append(ImportError_(row=0, symbol=row.symbol, message=str(e)))
+        except Exception as e:
+            # A DB-level failure (e.g. a value too long for a column) on
+            # one row must not silently abort the rest of the batch and
+            # leave a partial, hard-to-diagnose import — collect it and
+            # keep going, same as a validation error.
+            logger.exception("Unexpected error importing %s", row.symbol)
             result.errors.append(ImportError_(row=0, symbol=row.symbol, message=str(e)))
 
     result.rows = [r for r in result.rows if r.symbol not in {e.symbol for e in result.errors}]

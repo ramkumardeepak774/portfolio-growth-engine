@@ -251,6 +251,44 @@ CSV import from Zerodha, closing out the Railway deploy saga first.
 
 ---
 
+## Week 6.1 — 22 Jul 2026
+
+### Goal
+Actually run the real Zerodha import against production — found two real
+bugs doing it.
+
+### Done ✅
+- **Bug 1**: `Stock.symbol` was `VARCHAR(30)` — fine for stock tickers,
+  too short for mutual fund names used as a symbol fallback ("CANARA
+  ROBECO ELSS TAX SAVER FUND", 34 chars). Widened to `VARCHAR(100)`
+  (model + a direct `ALTER TABLE` on the live Neon table, no Alembic
+  migration infra exists yet). Also hardened `commit_import()`'s
+  per-row loop to catch any exception, not just `PortfolioWriteError`
+  — the DB error had propagated uncaught and killed the batch mid-way,
+  silently leaving 5 of 25 rows unimported with no error surfaced.
+- **Bug 2**: XIRR is mathematically undefined when every cashflow lands
+  on the same date (zero elapsed time) — exactly what a CSV-imported
+  holding creates (bought "today", valued "today"). `pyxirr` returns
+  `inf` rather than raising or returning `None`, which isn't
+  JSON-serializable and 500'd the holdings endpoint the moment any
+  same-day holding existed. Guarded both `calculate_xirr()` and
+  `calculate_portfolio_xirr()` with `math.isfinite()`.
+- Recovered the partial import cleanly: the 20 rows that succeeded
+  before bug 1 crashed the batch were left alone (re-running the full
+  CSV would have duplicated their transactions), only the 5 missing
+  mutual funds were imported via a targeted retry.
+- Production now has the real 32-holding portfolio (9 original + 23
+  from the Zerodha import) fully live and verified through the API.
+- 3 new regression tests (129 total): same-day XIRR for both the
+  per-holding and portfolio-level functions, and a CSV-import test
+  proving one row's DB error no longer aborts the rest of the batch.
+
+### Next Week
+- Remaining medium priority: monthly returns heatmap, rolling returns
+  chart, holding detail page, tax P&L report
+
+---
+
 <!-- Copy this template for each new week -->
 <!--
 ## Week N — DD MMM YYYY

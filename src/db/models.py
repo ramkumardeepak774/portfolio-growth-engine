@@ -107,7 +107,11 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    symbol: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    # Mutual funds have no short ticker to use as a symbol — the CSV
+    # importer falls back to the full fund name (e.g. "CANARA ROBECO ELSS
+    # TAX SAVER FUND", 34 chars), so this needs real headroom, not a
+    # stock-ticker-sized column.
+    symbol: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(200))
     exchange: Mapped[str] = mapped_column(String(10), default="NSE")  # NSE, BSE, NASDAQ
     asset_class: Mapped[AssetClassEnum] = mapped_column(Enum(AssetClassEnum))
