@@ -271,6 +271,15 @@ builder at `uv run uvicorn src.app:app --host 0.0.0.0 --port $PORT`
 repo on railway.app, then set env vars — at minimum `DATABASE_URL` (from
 Neon) and `CORS_ORIGINS` (set once the Vercel URL is known, see step 3).
 
+**Deploys are triggered by CI, not Railway's own GitHub integration** —
+its native auto-deploy-on-push proved unreliable (silently missed several
+merges in a row, including after checking the dashboard's "Auto Deploy"
+toggle). The `deploy-backend` job in `.github/workflows/test.yml` runs
+`railway up` after tests pass on every push to `main`, using a
+project-scoped `RAILWAY_TOKEN` GitHub Actions secret (Railway project →
+Settings → Tokens). Railway's git source link can stay connected for
+dashboard convenience, but nothing depends on it firing correctly anymore.
+
 ### 2. Frontend → Vercel
 
 Connect the GitHub repo on vercel.com with the project root set to
