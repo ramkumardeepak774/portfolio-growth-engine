@@ -191,9 +191,17 @@ manual `railway up`).
   off; turned on manually via the dashboard.
 - This commit is itself the test: if Railway auto-deploys it without a
   manual `railway up`, the fix holds.
+- **Update: the dashboard toggle didn't fix it either.** Verified with a
+  real merge — 3+ minutes, no auto-deploy triggered. Gave up on Railway's
+  own GitHub integration entirely.
+- Real fix: added a `deploy-backend` job to `.github/workflows/test.yml`
+  that runs `railway up` after `backend`/`frontend` tests pass, only on
+  pushes to `main`. Deploys are now triggered by our own CI (which has
+  never once missed a run all session) instead of Railway's flaky
+  webhook. `RAILWAY_TOKEN` (a project-scoped token, not an account
+  token) added as a GitHub Actions secret.
 
 ### Next Week
-- Confirm this stays fixed across future merges (no more silent misses)
 - Medium priority backlog: CSV import, monthly returns heatmap, rolling
   returns chart, holding detail page, tax P&L report
 
