@@ -46,6 +46,14 @@ class TestCalculateCagr:
     def test_loss(self):
         assert calculate_cagr(200, 100, 1) == pytest.approx(-50.0)
 
+    def test_large_return_over_near_zero_years_returns_zero_not_overflow(self):
+        """Regression test: a CSV-imported holding bought "today" has
+        years_held ~= 1/365.25 by the next day. Annualizing a large real
+        return (e.g. VAML's ~9.3x) over that short a period overflows a
+        float when raised to the ~365th power — production 500'd on this."""
+        result = calculate_cagr(11605, 107800, 1 / 365.25)
+        assert result == 0.0
+
 
 class TestCalculateXirr:
     def test_single_buy_with_gain_is_positive(self, make_holding):
