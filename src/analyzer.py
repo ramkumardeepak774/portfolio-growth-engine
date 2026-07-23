@@ -18,11 +18,25 @@ from .models import (
 )
 
 
+# Annualizing a return over less than a week of holding history isn't
+# meaningful — extrapolating one day of price movement to a full year
+# produces numbers that are either absurd (a 2x return in a day "is"
+# 2^365 % annualized) or literally overflow a float for larger returns.
+# CSV-imported holdings (bought "today", no real trade history) hit this
+# constantly, so it's a real guard, not a hypothetical one.
+_MIN_YEARS_FOR_ANNUALIZATION = 7 / 365.25
+
+
 def calculate_cagr(initial: float, final: float, years: float) -> float:
     """Calculate Compound Annual Growth Rate."""
-    if initial <= 0 or years <= 0:
+    if initial <= 0 or years < _MIN_YEARS_FOR_ANNUALIZATION:
         return 0.0
-    return ((final / initial) ** (1 / years) - 1) * 100
+    try:
+        return ((final / initial) ** (1 / years) - 1) * 100
+    except OverflowError:
+        # Defensive backstop — even beyond the minimum-years guard above,
+        # an extreme enough ratio can still overflow a float.
+        return 0.0
 
 
 def calculate_xirr(holding: Holding) -> Optional[float]:
@@ -51,13 +65,14 @@ def calculate_xirr(holding: Holding) -> Optional[float]:
 
     if len(dates) < 2:
         return None
+    if (max(dates) - min(dates)).days / 365.25 < _MIN_YEARS_FOR_ANNUALIZATION:
+        # Not just an inf/nan risk — even when pyxirr returns a finite
+        # number here, annualizing a few days of price movement produces
+        # nonsense-magnitude percentages, not a meaningful XIRR.
+        return None
 
     try:
         result = xirr(dates, amounts)
-        # XIRR is undefined when all cashflows land on the same date (zero
-        # elapsed time) — pyxirr returns inf/nan rather than raising, and
-        # that isn't JSON-serializable, so it must be treated as "can't
-        # compute" like any other failure.
         if result is not None and math.isfinite(result):
             return result * 100
     except Exception:
@@ -105,13 +120,11 @@ def calculate_portfolio_xirr(portfolio: Portfolio) -> Optional[float]:
 
     if len(dates) < 2:
         return None
+    if (max(dates) - min(dates)).days / 365.25 < _MIN_YEARS_FOR_ANNUALIZATION:
+        return None
 
     try:
         result = xirr(dates, amounts)
-        # XIRR is undefined when all cashflows land on the same date (zero
-        # elapsed time) — pyxirr returns inf/nan rather than raising, and
-        # that isn't JSON-serializable, so it must be treated as "can't
-        # compute" like any other failure.
         if result is not None and math.isfinite(result):
             return result * 100
     except Exception:
