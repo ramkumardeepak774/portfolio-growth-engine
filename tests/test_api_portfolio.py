@@ -75,8 +75,14 @@ class TestPortfolioHoldings:
         body = resp.json()
         assert isinstance(body, list)
         if body:
-            assert "Symbol" in body[0]
-            assert "XIRR %" in body[0]
+            # Plain fields matching the frontend's HoldingRow type — not
+            # holding_performance_table()'s display-formatted columns.
+            for key in (
+                "symbol", "name", "asset_class", "sector", "quantity",
+                "invested_amount", "current_value", "current_price",
+                "pnl", "pnl_percent", "weight_pct", "first_investment_date",
+            ):
+                assert key in body[0]
 
 
 class TestPortfolioAllocation:
