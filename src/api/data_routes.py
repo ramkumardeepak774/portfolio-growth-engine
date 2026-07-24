@@ -20,7 +20,10 @@ router = APIRouter()
 async def get_fundamentals(symbol: str):
     """Fetch fundamentals for a stock (Yahoo Finance)."""
     collector = YahooCollector()
-    data = collector.collect_fundamentals(symbol.upper())
+    # yfinance is fully synchronous — run it off the event loop so a slow
+    # or failing Yahoo request doesn't stall every other concurrent request
+    # on this single-process server (this blocked the whole dashboard once).
+    data = await asyncio.to_thread(collector.collect_fundamentals, symbol.upper())
     if not data:
         raise HTTPException(404, f"No data found for {symbol}")
     return data
@@ -30,7 +33,7 @@ async def get_fundamentals(symbol: str):
 async def get_prices(symbol: str, period: str = Query("1y", pattern="^(1mo|3mo|6mo|1y|2y|5y|max)$")):
     """Fetch historical prices."""
     collector = YahooCollector()
-    df = collector.collect_prices(symbol.upper(), period=period)
+    df = await asyncio.to_thread(collector.collect_prices, symbol.upper(), period=period)
     if df is None or df.empty:
         raise HTTPException(404, f"No price data for {symbol}")
     return df.to_dict(orient="records")
@@ -40,7 +43,7 @@ async def get_prices(symbol: str, period: str = Query("1y", pattern="^(1mo|3mo|6
 async def get_earnings(symbol: str):
     """Fetch earnings data."""
     collector = YahooCollector()
-    data = collector.collect_earnings(symbol.upper())
+    data = await asyncio.to_thread(collector.collect_earnings, symbol.upper())
     return {"symbol": symbol.upper(), "earnings": data}
 
 
@@ -48,7 +51,7 @@ async def get_earnings(symbol: str):
 async def get_insider_trades(symbol: str):
     """Fetch insider trading data."""
     collector = YahooCollector()
-    data = collector.collect_insider_trades(symbol.upper())
+    data = await asyncio.to_thread(collector.collect_insider_trades, symbol.upper())
     return {"symbol": symbol.upper(), "insider_trades": data}
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from dataclasses import asdict
@@ -202,7 +203,10 @@ async def portfolio_growth(period: str = Query("1y", pattern="^(1mo|3mo|6mo|1y|2
     """Real weighted portfolio value over time (direct-equity holdings only —
     see analyzer.portfolio_value_series for why mutual funds/gold/etc. are excluded)."""
     portfolio = load_portfolio()
-    series = portfolio_value_series(portfolio, period=period)
+    # portfolio_value_series does synchronous per-holding yfinance/DB calls —
+    # offload it so it doesn't block the event loop (and every other
+    # concurrent request) for the whole fetch.
+    series = await asyncio.to_thread(portfolio_value_series, portfolio, period=period)
     return {"period": period, "series": series}
 
 

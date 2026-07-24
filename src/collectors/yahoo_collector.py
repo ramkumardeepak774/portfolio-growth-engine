@@ -16,7 +16,11 @@ NSE_SUFFIX = ".NS"
 
 
 def _yahoo_symbol(symbol: str) -> str:
-    return symbol if "." in symbol else f"{symbol}{NSE_SUFFIX}"
+    # Index tickers (e.g. ^NSEI for NIFTY 50) already are the Yahoo symbol —
+    # appending .NS turns them into a nonexistent ticker (^NSEI.NS 404s).
+    if symbol.startswith("^") or "." in symbol:
+        return symbol
+    return f"{symbol}{NSE_SUFFIX}"
 
 
 class YahooCollector:
