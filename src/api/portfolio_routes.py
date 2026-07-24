@@ -17,7 +17,6 @@ from ..analyzer import (
     calculate_portfolio_cagr,
     calculate_portfolio_xirr,
     concentration_risk,
-    holding_performance_table,
     portfolio_value_series,
     sector_allocation,
 )
@@ -49,10 +48,33 @@ async def portfolio_summary():
 
 @router.get("/holdings")
 async def portfolio_holdings():
-    """Per-holding performance table."""
+    """Per-holding snapshot for the holdings table UI.
+
+    Returns plain fields matching the frontend's HoldingRow type — NOT
+    holding_performance_table()'s output, which is display-formatted
+    (title-case columns, "₹" suffixes, "N/A" strings) for reports/CSV,
+    not JSON consumption.
+    """
     portfolio = load_portfolio()
-    df = holding_performance_table(portfolio)
-    return df.to_dict(orient="records")
+    total_value = portfolio.total_current_value
+
+    return [
+        {
+            "symbol": h.symbol,
+            "name": h.name,
+            "asset_class": h.asset_class.value,
+            "sector": h.sector,
+            "quantity": round(h.quantity, 4),
+            "invested_amount": round(h.invested_amount, 2),
+            "current_value": round(h.current_value, 2),
+            "current_price": h.current_price,
+            "pnl": round(h.pnl, 2),
+            "pnl_percent": round(h.pnl_percent, 2),
+            "weight_pct": round(h.current_value / total_value * 100, 2) if total_value > 0 else 0,
+            "first_investment_date": h.first_investment_date.isoformat() if h.first_investment_date else None,
+        }
+        for h in portfolio.holdings
+    ]
 
 
 class AddTransactionRequest(BaseModel):
