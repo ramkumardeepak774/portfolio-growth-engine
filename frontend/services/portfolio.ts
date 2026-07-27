@@ -10,6 +10,7 @@ import type {
   PortfolioSummary,
   RebalanceAction,
   TaxReport,
+  UpdateTransactionRequest,
 } from "@/types"
 
 export const portfolioService = {
@@ -55,6 +56,16 @@ export const portfolioService = {
 
   addTransaction: async (payload: AddTransactionRequest): Promise<{ status: string }> => {
     const { data } = await api.post<{ status: string }>("/api/portfolio/transactions", payload)
+    return data
+  },
+
+  updateTransaction: async (id: number, payload: UpdateTransactionRequest): Promise<{ status: string }> => {
+    const { data } = await api.patch<{ status: string }>(`/api/portfolio/transactions/${id}`, payload)
+    return data
+  },
+
+  deleteTransaction: async (id: number): Promise<{ status: string }> => {
+    const { data } = await api.delete<{ status: string }>(`/api/portfolio/transactions/${id}`)
     return data
   },
 
