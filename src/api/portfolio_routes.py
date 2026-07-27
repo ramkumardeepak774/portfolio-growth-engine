@@ -78,6 +78,45 @@ async def portfolio_holdings():
     ]
 
 
+@router.get("/holdings/{symbol}")
+async def portfolio_holding_detail(symbol: str):
+    """Single holding + its full transaction history, for the detail page."""
+    portfolio = load_portfolio()
+    total_value = portfolio.total_current_value
+    symbol = symbol.upper().strip()
+
+    holding = next((h for h in portfolio.holdings if h.symbol.upper() == symbol), None)
+    if holding is None:
+        raise HTTPException(404, f"No active holding for symbol {symbol!r}")
+
+    return {
+        "symbol": holding.symbol,
+        "name": holding.name,
+        "asset_class": holding.asset_class.value,
+        "sector": holding.sector,
+        "quantity": round(holding.quantity, 4),
+        "invested_amount": round(holding.invested_amount, 2),
+        "current_value": round(holding.current_value, 2),
+        "current_price": holding.current_price,
+        "pnl": round(holding.pnl, 2),
+        "pnl_percent": round(holding.pnl_percent, 2),
+        "weight_pct": round(holding.current_value / total_value * 100, 2) if total_value > 0 else 0,
+        "first_investment_date": holding.first_investment_date.isoformat() if holding.first_investment_date else None,
+        "transactions": [
+            {
+                "id": t.id,
+                "date": t.date.isoformat(),
+                "type": t.type.value,
+                "quantity": t.quantity,
+                "price": t.price,
+                "charges": t.charges,
+                "amount": round(t.amount, 2),
+            }
+            for t in sorted(holding.transactions, key=lambda t: t.date)
+        ],
+    }
+
+
 class AddTransactionRequest(BaseModel):
     symbol: str
     type: str  # buy, sell, dividend, sip, switch

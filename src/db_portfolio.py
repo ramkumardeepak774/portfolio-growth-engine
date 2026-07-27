@@ -44,6 +44,7 @@ def load_portfolio_from_db() -> Portfolio:
                     quantity=t.quantity,
                     price=t.price,
                     charges=t.charges,
+                    id=t.id,
                 )
                 for t in sorted(pos.transactions, key=lambda t: t.date)
             ]

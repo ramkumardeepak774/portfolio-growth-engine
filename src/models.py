@@ -44,6 +44,7 @@ class Transaction:
     quantity: float
     price: float  # per unit in INR
     charges: float = 0.0  # brokerage + taxes
+    id: Optional[int] = None  # DB primary key; None for YAML-loaded/synthetic transactions
 
     @property
     def amount(self) -> float:

@@ -14,6 +14,7 @@ function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
 export const PORTFOLIO_KEYS = {
   summary: ["portfolio", "summary"] as const,
   holdings: ["portfolio", "holdings"] as const,
+  holdingDetail: (symbol: string) => ["portfolio", "holdings", symbol] as const,
   allocation: ["portfolio", "allocation"] as const,
   rebalance: ["portfolio", "rebalance"] as const,
   goals: ["portfolio", "goals"] as const,
@@ -35,6 +36,16 @@ export function useHoldings() {
   return useQuery({
     queryKey: PORTFOLIO_KEYS.holdings,
     queryFn: portfolioService.getHoldings,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  })
+}
+
+export function useHoldingDetail(symbol: string) {
+  return useQuery({
+    queryKey: PORTFOLIO_KEYS.holdingDetail(symbol),
+    queryFn: () => portfolioService.getHoldingDetail(symbol),
+    enabled: Boolean(symbol),
     staleTime: 5 * 60 * 1000,
     retry: 2,
   })

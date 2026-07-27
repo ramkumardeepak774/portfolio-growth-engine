@@ -25,6 +25,20 @@ export interface HoldingRow {
   first_investment_date?: string
 }
 
+export interface TransactionRow {
+  id: number | null
+  date: string
+  type: string
+  quantity: number
+  price: number
+  charges: number
+  amount: number
+}
+
+export interface HoldingDetail extends HoldingRow {
+  transactions: TransactionRow[]
+}
+
 export interface AllocationData {
   by_asset_class: Record<string, number>
   by_sector: Record<string, number>

@@ -85,6 +85,33 @@ class TestPortfolioHoldings:
                 assert key in body[0]
 
 
+class TestPortfolioHoldingDetail:
+    def test_returns_holding_with_transactions(self, client):
+        resp = client.get("/api/portfolio/holdings/RELIANCE")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["symbol"] == "RELIANCE"
+        assert "transactions" in body
+        assert isinstance(body["transactions"], list)
+        if body["transactions"]:
+            for key in ("id", "date", "type", "quantity", "price", "charges", "amount"):
+                assert key in body["transactions"][0]
+
+    def test_case_insensitive_lookup(self, client):
+        resp = client.get("/api/portfolio/holdings/reliance")
+        assert resp.status_code == 200
+        assert resp.json()["symbol"] == "RELIANCE"
+
+    def test_404_for_unknown_symbol(self, client):
+        resp = client.get("/api/portfolio/holdings/NOTREALSYMBOL")
+        assert resp.status_code == 404
+
+    def test_transactions_sorted_by_date_ascending(self, client):
+        resp = client.get("/api/portfolio/holdings/RELIANCE")
+        dates = [t["date"] for t in resp.json()["transactions"]]
+        assert dates == sorted(dates)
+
+
 class TestPortfolioAllocation:
     def test_returns_all_sections(self, client):
         resp = client.get("/api/portfolio/allocation")
