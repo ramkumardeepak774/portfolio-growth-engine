@@ -432,6 +432,26 @@ class Transaction(Base):
     position: Mapped["Position"] = relationship(back_populates="transactions")
 
 
+class WatchlistItem(Base):
+    """A symbol being tracked before buying — no position, no transactions.
+
+    Reuses the Stock table for symbol/name/asset_class/sector rather than
+    duplicating that metadata here.
+    """
+    __tablename__ = "watchlist_items"
+    __table_args__ = (
+        UniqueConstraint("stock_id", name="uq_watchlist_stock"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id", ondelete="CASCADE"), index=True)
+    target_price: Mapped[Optional[float]] = mapped_column(Float)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    added_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    stock: Mapped["Stock"] = relationship()
+
+
 class PortfolioSnapshot(Base):
     """Daily portfolio snapshots for tracking over time."""
     __tablename__ = "portfolio_snapshots"
