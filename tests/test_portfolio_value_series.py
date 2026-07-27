@@ -116,3 +116,29 @@ class TestPortfolioValueSeries:
         monkeypatch.setattr("src.price_cache.get_price_history", fake_get_price_history)
 
         assert portfolio_value_series(portfolio, period="1y") == []
+
+    def test_nan_price_does_not_poison_the_aggregated_sum(self, monkeypatch):
+        """Regression test: Yahoo can return NaN for a still-forming intraday
+        bar. price_cache.py now filters these before they reach here, but
+        this guards the aggregation itself — a NaN close on ANY holding for a
+        date must not turn the whole day's total into NaN (which crashed
+        JSON serialization in production: 'Out of range float values are
+        not JSON compliant: nan')."""
+        d0, d1 = "2026-01-01", "2026-01-02"
+        h1 = _equity_holding("A", quantity=10, buy_date=date(2025, 1, 1))
+        h2 = _equity_holding("B", quantity=5, buy_date=date(2025, 1, 1), asset_class=AssetClass.EQUITY_MID_CAP)
+        portfolio = Portfolio(holdings=[h1, h2])
+
+        def fake_get_price_history(symbol, asset_class, period="1y"):
+            if symbol == "A":
+                return _price_df({d0: 100.0, d1: float("nan")})
+            return _price_df({d0: 200.0, d1: 210.0})
+
+        monkeypatch.setattr("src.price_cache.get_price_history", fake_get_price_history)
+
+        series = portfolio_value_series(portfolio, period="1y")
+        by_date = {row["date"]: row["value"] for row in series}
+        assert by_date[d0] == pytest.approx(10 * 100.0 + 5 * 200.0)
+        # A's NaN close is skipped for d1 — only B contributes, not NaN.
+        assert by_date[d1] == pytest.approx(5 * 210.0)
+        assert all(v == v for v in by_date.values())  # v == v is False for NaN

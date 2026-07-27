@@ -260,6 +260,12 @@ def portfolio_value_series(portfolio: Portfolio, period: str = "1y") -> list[dic
             if available.empty:
                 continue
             price = available.iloc[-1]
+            if not math.isfinite(price):
+                # Belt-and-suspenders: price_cache.py already filters these
+                # out, but NaN is toxic in a sum (NaN + anything is NaN) and
+                # crashes JSON serialization outright — never let one reach
+                # here even if a future code path lets one slip through.
+                continue
             qty = _quantity_as_of(h, d)
             if qty <= 0:
                 continue
