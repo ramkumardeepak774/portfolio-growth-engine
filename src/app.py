@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
     )
 
     # --- Register routers ---
-    from .api import auth_router, portfolio_router, research_router, journal_router, data_router
+    from .api import auth_router, portfolio_router, research_router, journal_router, data_router, watchlist_router
     app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
     protected = [Depends(get_current_user)]
@@ -62,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(research_router, prefix="/api/research", tags=["Layer 2 — Research"], dependencies=protected)
     app.include_router(portfolio_router, prefix="/api/portfolio", tags=["Layer 3 — Portfolio"], dependencies=protected)
     app.include_router(journal_router, prefix="/api/journal", tags=["Layer 4 — Journal"], dependencies=protected)
+    app.include_router(watchlist_router, prefix="/api/watchlist", tags=["Watchlist"], dependencies=protected)
 
     @app.get("/health")
     async def health():

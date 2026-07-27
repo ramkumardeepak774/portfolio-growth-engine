@@ -11,6 +11,7 @@ import {
   Settings,
   TrendingUp,
   LogOut,
+  Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button"
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/holdings", label: "Holdings", icon: Briefcase },
+  { href: "/watchlist", label: "Watchlist", icon: Star },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/tax-report", label: "Tax Report", icon: Receipt },
   { href: "/journal", label: "Journal", icon: BookOpen },

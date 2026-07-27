@@ -276,3 +276,26 @@ export interface AuthState {
   token: string | null
   isLoading: boolean
 }
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
+
+export interface WatchlistItem {
+  symbol: string
+  name: string
+  asset_class: string
+  sector: string | null
+  target_price: number | null
+  notes: string | null
+  added_at: string
+  current_price: number | null
+}
+
+export interface AddWatchlistRequest {
+  symbol: string
+  target_price?: number
+  notes?: string
+  // Only required when `symbol` is new to the system
+  name?: string
+  asset_class?: string
+  sector?: string
+}
