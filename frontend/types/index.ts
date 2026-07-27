@@ -39,6 +39,31 @@ export interface HoldingDetail extends HoldingRow {
   transactions: TransactionRow[]
 }
 
+export interface TaxLot {
+  symbol: string
+  buy_date: string
+  sell_date: string
+  quantity: number
+  buy_price: number
+  sell_price: number
+  gain: number
+}
+
+export interface TaxUnsupportedAssetClass {
+  asset_class: string
+  symbols: string[]
+  note: string
+}
+
+export interface TaxReport {
+  fy: string
+  from: string
+  to: string
+  stcg: { total_gain: number; lots: TaxLot[] }
+  ltcg: { total_gain: number; lots: TaxLot[] }
+  unsupported_asset_classes: TaxUnsupportedAssetClass[]
+}
+
 export interface AllocationData {
   by_asset_class: Record<string, number>
   by_sector: Record<string, number>

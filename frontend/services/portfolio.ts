@@ -9,6 +9,7 @@ import type {
   PortfolioGrowth,
   PortfolioSummary,
   RebalanceAction,
+  TaxReport,
 } from "@/types"
 
 export const portfolioService = {
@@ -44,6 +45,11 @@ export const portfolioService = {
 
   getGrowth: async (period = "1y"): Promise<PortfolioGrowth> => {
     const { data } = await api.get<PortfolioGrowth>("/api/portfolio/growth", { params: { period } })
+    return data
+  },
+
+  getTaxReport: async (fy?: string): Promise<TaxReport> => {
+    const { data } = await api.get<TaxReport>("/api/portfolio/tax-report", { params: fy ? { fy } : {} })
     return data
   },
 

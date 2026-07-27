@@ -7,6 +7,7 @@ import {
   Briefcase,
   BarChart3,
   BookOpen,
+  Receipt,
   Settings,
   TrendingUp,
   LogOut,
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/holdings", label: "Holdings", icon: Briefcase },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/tax-report", label: "Tax Report", icon: Receipt },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
