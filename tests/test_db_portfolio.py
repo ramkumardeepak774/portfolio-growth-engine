@@ -15,12 +15,15 @@ import pytest
 
 from src.db.models import AssetClassEnum, TxnType
 from src.db_portfolio import (
+    HoldingNotFoundError,
     PortfolioWriteError,
     TransactionNotFoundError,
     add_transaction,
+    deactivate_holding,
     delete_transaction,
     get_portfolio,
     load_portfolio_from_db,
+    update_holding,
     update_transaction,
 )
 
@@ -283,3 +286,110 @@ class TestDeleteTransaction:
         with pytest.raises(PortfolioWriteError, match="negative"):
             delete_transaction(1)
         session.delete.assert_not_called()
+
+
+def _stock_position_session(stock, position):
+    session = MagicMock()
+
+    def query_side_effect(model):
+        q = MagicMock()
+        if model.__name__ == "Stock":
+            q.filter_by.return_value.one_or_none.return_value = stock
+        else:
+            q.filter_by.return_value.one_or_none.return_value = position
+        return q
+
+    session.query.side_effect = query_side_effect
+    return session
+
+
+class TestUpdateHolding:
+    def test_updates_provided_fields(self, monkeypatch):
+        stock = MagicMock(id=1, sector="Old Sector")
+        stock.name = "Old Name"  # `name=` in the MagicMock() constructor sets the mock's repr, not this attribute
+        position = MagicMock(notes=None)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        update_holding("reliance", name="New Name", sector="Energy", notes="watching closely")
+
+        assert stock.name == "New Name"
+        assert stock.sector == "Energy"
+        assert position.notes == "watching closely"
+        session.commit.assert_called_once()
+
+    def test_updates_asset_class(self, monkeypatch):
+        stock = MagicMock(id=1)
+        position = MagicMock(notes=None)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        update_holding("RELIANCE", asset_class="mf_equity")
+
+        assert stock.asset_class == AssetClassEnum.MF_EQUITY
+
+    def test_invalid_asset_class_raises(self, monkeypatch):
+        stock = MagicMock(id=1)
+        position = MagicMock(notes=None)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(PortfolioWriteError, match="Invalid asset class"):
+            update_holding("RELIANCE", asset_class="not_a_real_class")
+
+    def test_not_found_raises(self, monkeypatch):
+        session = _stock_position_session(None, None)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(HoldingNotFoundError):
+            update_holding("NOTREAL", name="X")
+
+    def test_no_fields_still_commits_without_error(self, monkeypatch):
+        stock = MagicMock(id=1)
+        stock.name = "Reliance"  # `name=` in the MagicMock() constructor sets the mock's repr, not this attribute
+        position = MagicMock(notes=None)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        update_holding("RELIANCE")
+
+        assert stock.name == "Reliance"  # unchanged
+        session.commit.assert_called_once()
+
+
+class TestDeactivateHolding:
+    def test_deactivates_position(self, monkeypatch):
+        stock = MagicMock(id=1)
+        position = MagicMock(is_active=True)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        deactivate_holding("RELIANCE")
+
+        assert position.is_active is False
+        session.commit.assert_called_once()
+
+    def test_idempotent_when_already_inactive(self, monkeypatch):
+        stock = MagicMock(id=1)
+        position = MagicMock(is_active=False)
+        session = _stock_position_session(stock, position)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        deactivate_holding("RELIANCE")  # should not raise
+
+        assert position.is_active is False
+
+    def test_not_found_raises_when_no_stock(self, monkeypatch):
+        session = _stock_position_session(None, None)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(HoldingNotFoundError):
+            deactivate_holding("NOTREAL")
+
+    def test_not_found_raises_when_stock_has_no_position(self, monkeypatch):
+        stock = MagicMock(id=1)
+        session = _stock_position_session(stock, None)
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(HoldingNotFoundError):
+            deactivate_holding("RELIANCE")

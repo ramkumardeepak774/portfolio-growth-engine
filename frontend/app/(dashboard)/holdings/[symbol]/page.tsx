@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dialog"
 import { PortfolioGrowthChart } from "@/components/charts/portfolio-growth-chart"
 import { TransactionFields, type TransactionFieldsValue } from "@/components/holdings/transaction-fields"
+import { EditHoldingForm } from "@/components/holdings/edit-holding-form"
+import { DeleteHoldingConfirm } from "@/components/holdings/delete-holding-confirm"
 import { useHoldingDetail, useStockPrices, useUpdateTransaction, useDeleteTransaction } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, formatDate, pnlColor } from "@/lib/format"
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react"
@@ -45,6 +47,8 @@ export default function HoldingDetailPage() {
   const { data: prices, isLoading: pricesLoading } = useStockPrices(symbol, "1y")
   const [editingTxn, setEditingTxn] = useState<TransactionRow | null>(null)
   const [deletingTxn, setDeletingTxn] = useState<TransactionRow | null>(null)
+  const [editingHolding, setEditingHolding] = useState(false)
+  const [deletingHolding, setDeletingHolding] = useState(false)
 
   const priceChartData = useMemo(() => {
     if (!prices?.length) return []
@@ -79,9 +83,26 @@ export default function HoldingDetailPage() {
       />
 
       <div className="p-6 space-y-6">
-        <Button variant="ghost" size="sm" className="w-fit -ml-2" onClick={() => router.push("/holdings")}>
-          <ArrowLeft className="size-3.5 mr-1.5" /> Back to Holdings
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="sm" className="w-fit -ml-2" onClick={() => router.push("/holdings")}>
+            <ArrowLeft className="size-3.5 mr-1.5" /> Back to Holdings
+          </Button>
+          {holding && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingHolding(true)}>
+                <Pencil className="size-3.5 mr-1.5" /> Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-400 hover:text-red-400"
+                onClick={() => setDeletingHolding(true)}
+              >
+                <Trash2 className="size-3.5 mr-1.5" /> Hide
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -227,6 +248,30 @@ export default function HoldingDetailPage() {
           </DialogHeader>
           {deletingTxn && (
             <DeleteTransactionConfirm transaction={deletingTxn} onClose={() => setDeletingTxn(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editingHolding} onOpenChange={setEditingHolding}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Holding</DialogTitle>
+          </DialogHeader>
+          {holding && <EditHoldingForm holding={holding} onClose={() => setEditingHolding(false)} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deletingHolding} onOpenChange={setDeletingHolding}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hide Holding</DialogTitle>
+          </DialogHeader>
+          {holding && (
+            <DeleteHoldingConfirm
+              holding={holding}
+              onClose={() => setDeletingHolding(false)}
+              onDeleted={() => router.push("/holdings")}
+            />
           )}
         </DialogContent>
       </Dialog>

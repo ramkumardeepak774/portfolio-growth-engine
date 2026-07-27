@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { portfolioService } from "@/services/portfolio"
 import { marketDataService } from "@/services/market-data"
-import type { AddTransactionRequest, UpdateTransactionRequest } from "@/types"
+import type { AddTransactionRequest, UpdateHoldingRequest, UpdateTransactionRequest } from "@/types"
 
 function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.summary })
@@ -121,6 +121,23 @@ export function useDeleteTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => portfolioService.deleteTransaction(id),
+    onSuccess: () => invalidatePortfolioQueries(qc),
+  })
+}
+
+export function useUpdateHolding() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ symbol, payload }: { symbol: string; payload: UpdateHoldingRequest }) =>
+      portfolioService.updateHolding(symbol, payload),
+    onSuccess: () => invalidatePortfolioQueries(qc),
+  })
+}
+
+export function useDeleteHolding() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (symbol: string) => portfolioService.deleteHolding(symbol),
     onSuccess: () => invalidatePortfolioQueries(qc),
   })
 }

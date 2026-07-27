@@ -10,6 +10,7 @@ import type {
   PortfolioSummary,
   RebalanceAction,
   TaxReport,
+  UpdateHoldingRequest,
   UpdateTransactionRequest,
 } from "@/types"
 
@@ -26,6 +27,16 @@ export const portfolioService = {
 
   getHoldingDetail: async (symbol: string): Promise<HoldingDetail> => {
     const { data } = await api.get<HoldingDetail>(`/api/portfolio/holdings/${symbol}`)
+    return data
+  },
+
+  updateHolding: async (symbol: string, payload: UpdateHoldingRequest): Promise<{ status: string }> => {
+    const { data } = await api.patch<{ status: string }>(`/api/portfolio/holdings/${symbol}`, payload)
+    return data
+  },
+
+  deleteHolding: async (symbol: string): Promise<{ status: string }> => {
+    const { data } = await api.delete<{ status: string }>(`/api/portfolio/holdings/${symbol}`)
     return data
   },
 
