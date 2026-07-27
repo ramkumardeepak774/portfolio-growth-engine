@@ -24,10 +24,13 @@
 | # | Item | Why |
 |---|---|---|
 | ~~5~~ | ~~CSV import (Zerodha format)~~ | Done — `POST /api/portfolio/import/csv`, Kite Holdings export, dry-run preview + confirm |
-| 6 | Monthly returns heatmap | Great for visualising seasonality |
-| 7 | Rolling returns chart | Shows consistency over time |
-| 8 | Holding detail page | Click a holding → see full history + chart |
-| 9 | Tax P&L report | STCG / LTCG for filing purposes |
+| ~~6~~ | ~~Monthly returns heatmap~~ | Done — client-side, `/analytics` |
+| ~~7~~ | ~~Rolling returns chart~~ | Done — 1Y/3Y/5Y toggle, `/analytics` |
+| ~~8~~ | ~~Holding detail page~~ | Done — `holdings/[symbol]`, price chart + transaction history |
+| ~~9~~ | ~~Tax P&L report~~ | Done — STCG/LTCG, FIFO, equity/equity-MF only, `/tax-report` |
+| ~~10~~ | ~~Edit/delete transactions~~ | Done — negative-quantity guard, `holdings/[symbol]` |
+| ~~11~~ | ~~Edit/delete holdings~~ | Done — soft-delete via `is_active`, holdings list + detail page |
+| 12 | Tradebook CSV import | Deferred — needs a real Zerodha Tradebook export to build against; revisit if manual re-entry becomes a real problem |
 
 ---
 
@@ -49,4 +52,6 @@
 | # | Issue | Status |
 |---|---|---|
 | — | ~~Portfolio growth chart uses top holding as proxy instead of real weighted value~~ | Fixed — `portfolio_value_series()` |
-| — | XIRR on frontend is client-side — needs actual transaction cashflows from API | Open |
+| — | ~~XIRR on frontend is client-side~~ | Stale — `summary.xirr` already comes from the backend's real transaction-based XIRR; the unused client-side `calcXIRR` in `lib/financial.ts` is dead code, not a live bug |
+| — | ~~`/api/portfolio/holdings` and `/api/data/prices/{symbol}` returned wrong field casing~~ | Fixed — broke the Holdings page, analytics page, and dashboard benchmark chart |
+| — | ~~NaN close price crashes `/api/portfolio/growth`~~ | Fixed — Yahoo's still-forming intraday bar filtered out in `price_cache.py` |
