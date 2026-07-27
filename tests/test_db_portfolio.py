@@ -14,7 +14,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.db.models import AssetClassEnum, TxnType
-from src.db_portfolio import PortfolioWriteError, add_transaction, get_portfolio, load_portfolio_from_db
+from src.db_portfolio import (
+    PortfolioWriteError,
+    TransactionNotFoundError,
+    add_transaction,
+    delete_transaction,
+    get_portfolio,
+    load_portfolio_from_db,
+    update_transaction,
+)
 
 
 def _mock_session_factory(session: MagicMock):
@@ -182,3 +190,96 @@ class TestGetPortfolio:
 
         portfolio = get_portfolio()
         assert portfolio.holdings[0].symbol == "DBHOLDING"
+
+
+def _make_txn(id, d, txn_type, qty):
+    return MagicMock(id=id, date=d, txn_type=txn_type, quantity=qty)
+
+
+def _make_position(id, symbol, transactions):
+    position = MagicMock(id=id)
+    position.stock = MagicMock(symbol=symbol)
+    position.transactions = transactions
+    return position
+
+
+class TestUpdateTransaction:
+    def test_updates_provided_fields_and_recomputes_amount(self, monkeypatch):
+        txn = MagicMock(id=1, position_id=10, txn_type=TxnType.BUY, date=date(2026, 1, 1), quantity=10, price=100, charges=5)
+        position = _make_position(10, "RELIANCE", [txn])
+        session = MagicMock()
+        session.get.side_effect = lambda model, id: txn if model.__name__ == "Transaction" else position
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        update_transaction(1, quantity=20, price=150)
+
+        assert txn.quantity == 20
+        assert txn.price == 150
+        assert txn.amount == pytest.approx(20 * 150 + 5)  # charges unchanged
+        session.commit.assert_called_once()
+
+    def test_not_found_raises(self, monkeypatch):
+        session = MagicMock()
+        session.get.return_value = None
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(TransactionNotFoundError):
+            update_transaction(999, quantity=1)
+
+    def test_invalid_type_raises(self, monkeypatch):
+        txn = MagicMock(id=1, position_id=10, txn_type=TxnType.BUY, date=date(2026, 1, 1), quantity=10, price=100, charges=0)
+        position = _make_position(10, "RELIANCE", [txn])
+        session = MagicMock()
+        session.get.side_effect = lambda model, id: txn if model.__name__ == "Transaction" else position
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(PortfolioWriteError, match="Invalid transaction type"):
+            update_transaction(1, txn_type="yolo")
+
+    def test_rejects_edit_that_makes_quantity_negative(self, monkeypatch):
+        buy = _make_txn(1, date(2026, 1, 1), TxnType.BUY, 10)
+        sell = _make_txn(2, date(2026, 2, 1), TxnType.SELL, 10)
+        position = _make_position(10, "RELIANCE", [buy, sell])
+        session = MagicMock()
+        session.get.side_effect = lambda model, id: buy if model.__name__ == "Transaction" else position
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        # Shrinking the BUY to 5 units means the SELL of 10 would overdraw.
+        with pytest.raises(PortfolioWriteError, match="negative"):
+            update_transaction(1, quantity=5)
+        session.commit.assert_not_called()
+
+
+class TestDeleteTransaction:
+    def test_deletes_and_commits(self, monkeypatch):
+        txn = MagicMock(id=1, position_id=10)
+        position = _make_position(10, "RELIANCE", [txn])
+        session = MagicMock()
+        session.get.side_effect = lambda model, id: txn if model.__name__ == "Transaction" else position
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        delete_transaction(1)
+
+        session.delete.assert_called_once_with(txn)
+        session.commit.assert_called_once()
+
+    def test_not_found_raises(self, monkeypatch):
+        session = MagicMock()
+        session.get.return_value = None
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        with pytest.raises(TransactionNotFoundError):
+            delete_transaction(999)
+
+    def test_rejects_delete_that_makes_quantity_negative(self, monkeypatch):
+        buy = _make_txn(1, date(2026, 1, 1), TxnType.BUY, 10)
+        sell = _make_txn(2, date(2026, 2, 1), TxnType.SELL, 10)
+        position = _make_position(10, "RELIANCE", [buy, sell])
+        session = MagicMock()
+        session.get.side_effect = lambda model, id: buy if model.__name__ == "Transaction" else position
+        monkeypatch.setattr("src.db_portfolio.get_sync_session_factory", lambda: _mock_session_factory(session))
+
+        # Deleting the BUY leaves the SELL with nothing to draw from.
+        with pytest.raises(PortfolioWriteError, match="negative"):
+            delete_transaction(1)
+        session.delete.assert_not_called()

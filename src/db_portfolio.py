@@ -29,6 +29,10 @@ class PortfolioWriteError(Exception):
     """Raised for invalid writes (e.g. missing fields for a brand-new holding)."""
 
 
+class TransactionNotFoundError(Exception):
+    """Raised when a transaction id doesn't exist."""
+
+
 def load_portfolio_from_db() -> Portfolio:
     """Reconstruct the Portfolio dataclass from Postgres — raises on any DB error."""
     session_factory = get_sync_session_factory()
@@ -145,4 +149,108 @@ def add_transaction(
                 amount=amount,
             )
         )
+        session.commit()
+
+
+class _SimTxn:
+    """Lightweight stand-in for a hypothetical edited transaction — only
+    the fields _running_quantity_goes_negative() needs to forward-simulate."""
+
+    def __init__(self, date: date_type, txn_type: TxnType, quantity: float):
+        self.date = date
+        self.txn_type = txn_type
+        self.quantity = quantity
+
+
+def _running_quantity_goes_negative(
+    position: Position, *, excluding_id: int, hypothetical: "_SimTxn | None"
+) -> bool:
+    """Forward-simulate the position's running quantity across all its
+    transactions (in date order), with `excluding_id` removed and
+    `hypothetical` substituted in its place (None for a delete). Returns
+    True if quantity would ever go negative — used to block an edit/delete
+    that would silently corrupt CAGR/XIRR/holdings math downstream."""
+    txns = [t for t in position.transactions if t.id != excluding_id]
+    if hypothetical is not None:
+        txns.append(hypothetical)
+
+    qty = 0.0
+    for t in sorted(txns, key=lambda t: t.date):
+        if t.txn_type in (TxnType.BUY, TxnType.SIP):
+            qty += t.quantity
+        elif t.txn_type == TxnType.SELL:
+            qty -= t.quantity
+        if qty < -1e-9:
+            return True
+    return False
+
+
+def update_transaction(
+    transaction_id: int,
+    *,
+    txn_type: str | None = None,
+    txn_date: date_type | None = None,
+    quantity: float | None = None,
+    price: float | None = None,
+    charges: float | None = None,
+) -> None:
+    """Edit a transaction's fields. Only provided (non-None) fields change.
+
+    Rejects (PortfolioWriteError) an edit that would drive the holding's
+    running quantity negative — e.g. shrinking an early BUY that a later
+    SELL depends on.
+    """
+    session_factory = get_sync_session_factory()
+    with session_factory() as session:
+        txn = session.get(DBTransaction, transaction_id)
+        if txn is None:
+            raise TransactionNotFoundError(f"No transaction with id {transaction_id}")
+
+        new_type = txn.txn_type
+        if txn_type is not None:
+            try:
+                new_type = TxnType(txn_type)
+            except ValueError:
+                raise PortfolioWriteError(f"Invalid transaction type: {txn_type!r}")
+        new_date = txn_date if txn_date is not None else txn.date
+        new_quantity = quantity if quantity is not None else txn.quantity
+        new_price = price if price is not None else txn.price
+        new_charges = charges if charges is not None else txn.charges
+
+        position = session.get(Position, txn.position_id)
+        hypothetical = _SimTxn(date=new_date, txn_type=new_type, quantity=new_quantity)
+        if _running_quantity_goes_negative(position, excluding_id=txn.id, hypothetical=hypothetical):
+            raise PortfolioWriteError(
+                f"This edit would make {position.stock.symbol}'s quantity go negative "
+                "— check the transaction history for this holding."
+            )
+
+        txn.txn_type = new_type
+        txn.date = new_date
+        txn.quantity = new_quantity
+        txn.price = new_price
+        txn.charges = new_charges
+        txn.amount = new_quantity * new_price + new_charges
+        session.commit()
+
+
+def delete_transaction(transaction_id: int) -> None:
+    """Delete a transaction. Rejects (PortfolioWriteError) a delete that
+    would drive the holding's running quantity negative — does not touch
+    Position.is_active, that's a separate explicit "delete holding" action.
+    """
+    session_factory = get_sync_session_factory()
+    with session_factory() as session:
+        txn = session.get(DBTransaction, transaction_id)
+        if txn is None:
+            raise TransactionNotFoundError(f"No transaction with id {transaction_id}")
+
+        position = session.get(Position, txn.position_id)
+        if _running_quantity_goes_negative(position, excluding_id=txn.id, hypothetical=None):
+            raise PortfolioWriteError(
+                f"Deleting this transaction would make {position.stock.symbol}'s "
+                "quantity go negative — check the transaction history for this holding."
+            )
+
+        session.delete(txn)
         session.commit()

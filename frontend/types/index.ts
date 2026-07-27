@@ -123,6 +123,14 @@ export interface AddTransactionRequest {
   sector?: string
 }
 
+export interface UpdateTransactionRequest {
+  type?: TransactionType
+  date?: string
+  quantity?: number
+  price?: number
+  charges?: number
+}
+
 export interface ImportRow {
   symbol: string
   quantity: number

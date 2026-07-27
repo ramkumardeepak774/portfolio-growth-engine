@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { portfolioService } from "@/services/portfolio"
 import { marketDataService } from "@/services/market-data"
-import type { AddTransactionRequest } from "@/types"
+import type { AddTransactionRequest, UpdateTransactionRequest } from "@/types"
 
 function invalidatePortfolioQueries(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.summary })
+  // Prefix match also invalidates every holdingDetail(symbol) entry, since
+  // that key is ["portfolio","holdings",symbol] — a subset of this one.
   qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.holdings })
   qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.allocation })
   qc.invalidateQueries({ queryKey: PORTFOLIO_KEYS.rebalance })
   qc.invalidateQueries({ queryKey: ["portfolio", "growth"] })
+  qc.invalidateQueries({ queryKey: ["portfolio", "tax-report"] })
 }
 
 export const PORTFOLIO_KEYS = {
@@ -101,6 +104,23 @@ export function useAddTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: AddTransactionRequest) => portfolioService.addTransaction(payload),
+    onSuccess: () => invalidatePortfolioQueries(qc),
+  })
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateTransactionRequest }) =>
+      portfolioService.updateTransaction(id, payload),
+    onSuccess: () => invalidatePortfolioQueries(qc),
+  })
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => portfolioService.deleteTransaction(id),
     onSuccess: () => invalidatePortfolioQueries(qc),
   })
 }

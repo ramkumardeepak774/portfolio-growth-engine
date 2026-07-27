@@ -9,10 +9,17 @@ from dataclasses import asdict
 from datetime import date
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..csv_import import commit_import, parse_holdings_csv
-from ..db_portfolio import PortfolioWriteError, add_transaction, get_portfolio as load_portfolio
+from ..db_portfolio import (
+    PortfolioWriteError,
+    TransactionNotFoundError,
+    add_transaction,
+    delete_transaction,
+    get_portfolio as load_portfolio,
+    update_transaction,
+)
 from ..analyzer import (
     asset_class_allocation,
     calculate_portfolio_cagr,
@@ -155,6 +162,58 @@ async def create_transaction(req: AddTransactionRequest):
     except Exception:
         logger.exception("Failed to record transaction for %s", req.symbol)
         raise HTTPException(503, "Could not save transaction — database unavailable")
+    return {"status": "ok"}
+
+
+class UpdateTransactionRequest(BaseModel):
+    # `txn_date` (not `date`) to avoid the field name shadowing the
+    # `datetime.date` import in this module's own class namespace — a
+    # field named exactly `date` with a `None` default breaks pydantic's
+    # evaluation of the `date | None` forward-ref annotation. `alias`
+    # keeps the JSON key as "date" for consistency with AddTransactionRequest.
+    type: str | None = None
+    txn_date: date | None = Field(None, alias="date")
+    quantity: float | None = None
+    price: float | None = None
+    charges: float | None = None
+
+
+@router.patch("/transactions/{transaction_id}")
+async def update_transaction_route(transaction_id: int, req: UpdateTransactionRequest):
+    """Edit a transaction. Rejects (400) an edit that would drive the
+    holding's running quantity negative."""
+    try:
+        update_transaction(
+            transaction_id,
+            txn_type=req.type,
+            txn_date=req.txn_date,
+            quantity=req.quantity,
+            price=req.price,
+            charges=req.charges,
+        )
+    except TransactionNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except PortfolioWriteError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Failed to update transaction %s", transaction_id)
+        raise HTTPException(503, "Could not update transaction — database unavailable")
+    return {"status": "ok"}
+
+
+@router.delete("/transactions/{transaction_id}")
+async def delete_transaction_route(transaction_id: int):
+    """Delete a transaction. Rejects (400) a delete that would drive the
+    holding's running quantity negative."""
+    try:
+        delete_transaction(transaction_id)
+    except TransactionNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except PortfolioWriteError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Failed to delete transaction %s", transaction_id)
+        raise HTTPException(503, "Could not delete transaction — database unavailable")
     return {"status": "ok"}
 
 

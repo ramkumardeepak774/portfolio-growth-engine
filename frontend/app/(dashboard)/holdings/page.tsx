@@ -31,39 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { TransactionFields, type TransactionFieldsValue } from "@/components/holdings/transaction-fields"
 import { useHoldings, useAddTransaction, useImportCsv } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, pnlColor } from "@/lib/format"
+import { ASSET_CLASSES } from "@/lib/constants"
 import { Plus, Search, TrendingUp, TrendingDown, Upload } from "lucide-react"
 import type { HoldingRow, ImportCsvResponse, TransactionType } from "@/types"
-
-const TXN_TYPES: { value: TransactionType; label: string }[] = [
-  { value: "buy", label: "Buy" },
-  { value: "sell", label: "Sell" },
-  { value: "sip", label: "SIP" },
-  { value: "dividend", label: "Dividend" },
-  { value: "switch", label: "Switch" },
-]
-
-const ASSET_CLASSES: { value: string; label: string }[] = [
-  { value: "equity_large_cap", label: "Equity — Large Cap" },
-  { value: "equity_mid_cap", label: "Equity — Mid Cap" },
-  { value: "equity_small_cap", label: "Equity — Small Cap" },
-  { value: "equity_micro_cap", label: "Equity — Micro Cap" },
-  { value: "mf_equity", label: "Mutual Fund — Equity" },
-  { value: "mf_hybrid", label: "Mutual Fund — Hybrid" },
-  { value: "mf_debt", label: "Mutual Fund — Debt" },
-  { value: "mf_index", label: "Mutual Fund — Index" },
-  { value: "mf_elss", label: "Mutual Fund — ELSS" },
-  { value: "gold", label: "Gold" },
-  { value: "fd", label: "Fixed Deposit" },
-  { value: "ppf", label: "PPF" },
-  { value: "epf", label: "EPF" },
-  { value: "nps", label: "NPS" },
-  { value: "real_estate", label: "Real Estate" },
-  { value: "crypto", label: "Crypto" },
-  { value: "cash", label: "Cash" },
-  { value: "other", label: "Other" },
-]
 
 function HoldingSkeleton() {
   return (
@@ -295,86 +268,20 @@ function AddTransactionForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="space-y-4 mt-2">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="symbol" className="text-xs">
-            Symbol *
-          </Label>
-          <Input
-            id="symbol"
-            className="h-8 text-sm uppercase"
-            placeholder="RELIANCE"
-            value={form.symbol}
-            onChange={(e) => setForm((s) => ({ ...s, symbol: e.target.value.toUpperCase() }))}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Type *</Label>
-          <Select value={form.type} onValueChange={(v) => setForm((s) => ({ ...s, type: v as TransactionType }))}>
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TXN_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-sm">
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="quantity" className="text-xs">
-            Quantity *
-          </Label>
-          <Input
-            id="quantity"
-            type="number"
-            className="h-8 text-sm"
-            placeholder="10"
-            value={form.quantity}
-            onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="price" className="text-xs">
-            Price (₹) *
-          </Label>
-          <Input
-            id="price"
-            type="number"
-            className="h-8 text-sm"
-            placeholder="2500"
-            value={form.price}
-            onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="date" className="text-xs">
-            Date *
-          </Label>
-          <Input
-            id="date"
-            type="date"
-            className="h-8 text-sm"
-            value={form.date}
-            onChange={(e) => setForm((s) => ({ ...s, date: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="charges" className="text-xs">
-            Charges (₹)
-          </Label>
-          <Input
-            id="charges"
-            type="number"
-            className="h-8 text-sm"
-            placeholder="0"
-            value={form.charges}
-            onChange={(e) => setForm((s) => ({ ...s, charges: e.target.value }))}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="symbol" className="text-xs">
+          Symbol *
+        </Label>
+        <Input
+          id="symbol"
+          className="h-8 text-sm uppercase"
+          placeholder="RELIANCE"
+          value={form.symbol}
+          onChange={(e) => setForm((s) => ({ ...s, symbol: e.target.value.toUpperCase() }))}
+        />
       </div>
+
+      <TransactionFields value={form} onChange={(v) => setForm((s) => ({ ...s, ...v }))} />
 
       <p className="text-xs text-muted-foreground">
         Only needed if <span className="font-medium">{form.symbol || "this symbol"}</span> is a new holding:

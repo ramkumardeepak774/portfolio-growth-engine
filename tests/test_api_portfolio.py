@@ -246,6 +246,74 @@ class TestCreateTransaction:
         assert resp.status_code == 401
 
 
+class TestUpdateTransaction:
+    """Mocks update_transaction so this never hits Postgres."""
+
+    def test_valid_update_returns_ok(self, client, monkeypatch):
+        monkeypatch.setattr("src.api.portfolio_routes.update_transaction", lambda txn_id, **kwargs: None)
+        resp = client.patch("/api/portfolio/transactions/1", json={"quantity": 20})
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_not_found_returns_404(self, client, monkeypatch):
+        from src.db_portfolio import TransactionNotFoundError
+
+        def raise_not_found(txn_id, **kwargs):
+            raise TransactionNotFoundError("no such transaction")
+
+        monkeypatch.setattr("src.api.portfolio_routes.update_transaction", raise_not_found)
+        resp = client.patch("/api/portfolio/transactions/999", json={"quantity": 20})
+        assert resp.status_code == 404
+
+    def test_negative_quantity_guard_returns_400(self, client, monkeypatch):
+        from src.db_portfolio import PortfolioWriteError
+
+        def raise_write_error(txn_id, **kwargs):
+            raise PortfolioWriteError("would make RELIANCE's quantity go negative")
+
+        monkeypatch.setattr("src.api.portfolio_routes.update_transaction", raise_write_error)
+        resp = client.patch("/api/portfolio/transactions/1", json={"quantity": 1})
+        assert resp.status_code == 400
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.patch("/api/portfolio/transactions/1", json={"quantity": 20})
+        assert resp.status_code == 401
+
+
+class TestDeleteTransaction:
+    """Mocks delete_transaction so this never hits Postgres."""
+
+    def test_valid_delete_returns_ok(self, client, monkeypatch):
+        monkeypatch.setattr("src.api.portfolio_routes.delete_transaction", lambda txn_id: None)
+        resp = client.delete("/api/portfolio/transactions/1")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_not_found_returns_404(self, client, monkeypatch):
+        from src.db_portfolio import TransactionNotFoundError
+
+        def raise_not_found(txn_id):
+            raise TransactionNotFoundError("no such transaction")
+
+        monkeypatch.setattr("src.api.portfolio_routes.delete_transaction", raise_not_found)
+        resp = client.delete("/api/portfolio/transactions/999")
+        assert resp.status_code == 404
+
+    def test_negative_quantity_guard_returns_400(self, client, monkeypatch):
+        from src.db_portfolio import PortfolioWriteError
+
+        def raise_write_error(txn_id):
+            raise PortfolioWriteError("would make RELIANCE's quantity go negative")
+
+        monkeypatch.setattr("src.api.portfolio_routes.delete_transaction", raise_write_error)
+        resp = client.delete("/api/portfolio/transactions/1")
+        assert resp.status_code == 400
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.delete("/api/portfolio/transactions/1")
+        assert resp.status_code == 401
+
+
 SAMPLE_HOLDINGS_CSV = (
     '"Instrument","Qty.","Avg. cost","LTP","Invested","Cur. val","P&L","Net chg.","Day chg.",""\n'
     '"RELIANCE",50,1362.6,1288.6,68130,64430,-3700,-5.43,-1.16,""\n'
