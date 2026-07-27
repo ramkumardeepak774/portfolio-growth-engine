@@ -293,3 +293,43 @@ export function generateInsights(params: {
 
   return insights
 }
+
+/** Direct equity asset classes — a market crash hits these; mutual funds,
+ * gold, FD/PPF/EPF/NPS, real estate, crypto, and cash are far more
+ * resilient (or simply uncorrelated) and are left unaffected rather than
+ * guessed at. Mirrors _PRICEABLE_ASSET_CLASSES in src/analyzer.py, but
+ * this is frontend-local since the stress test has no backend involvement. */
+export const EQUITY_ASSET_CLASSES = [
+  "equity_large_cap",
+  "equity_mid_cap",
+  "equity_small_cap",
+  "equity_micro_cap",
+]
+
+export interface StressTestRow {
+  symbol: string
+  asset_class: string
+  current_value: number
+  stressed_value: number
+  affected: boolean
+}
+
+/** Apply a uniform % shock (e.g. -30 for a 30% drop) to direct equity
+ * holdings only. Non-equity holdings are returned unchanged with
+ * affected: false, so the UI can show them as explicitly untouched rather
+ * than silently including them in the "after crash" total. */
+export function applyStressScenario(
+  holdings: Array<{ symbol: string; asset_class: string; current_value: number }>,
+  shockPct: number,
+): StressTestRow[] {
+  return holdings.map((h) => {
+    const affected = EQUITY_ASSET_CLASSES.includes(h.asset_class)
+    return {
+      symbol: h.symbol,
+      asset_class: h.asset_class,
+      current_value: h.current_value,
+      stressed_value: affected ? h.current_value * (1 + shockPct / 100) : h.current_value,
+      affected,
+    }
+  })
+}

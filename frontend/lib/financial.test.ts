@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  applyStressScenario,
   calcAlpha,
   calcBeta,
   calcCAGR,
@@ -309,5 +310,59 @@ describe("generateInsights", () => {
         description: "No major risk concentrations detected at this time.",
       },
     ])
+  })
+})
+
+describe("applyStressScenario", () => {
+  it("applies the shock proportionally to direct equity holdings", () => {
+    const holdings = [
+      { symbol: "RELIANCE", asset_class: "equity_large_cap", current_value: 100000 },
+    ]
+    const result = applyStressScenario(holdings, -30)
+    expect(result[0].stressed_value).toBeCloseTo(70000, 6)
+    expect(result[0].affected).toBe(true)
+  })
+
+  it("leaves non-equity holdings unaffected", () => {
+    const holdings = [
+      { symbol: "PPFAS_FLEXICAP", asset_class: "mf_equity", current_value: 50000 },
+      { symbol: "GOLDBEES", asset_class: "gold", current_value: 20000 },
+    ]
+    const result = applyStressScenario(holdings, -30)
+    expect(result[0].affected).toBe(false)
+    expect(result[0].stressed_value).toBe(50000)
+    expect(result[1].affected).toBe(false)
+    expect(result[1].stressed_value).toBe(20000)
+  })
+
+  it("covers all four equity asset classes", () => {
+    const holdings = [
+      { symbol: "A", asset_class: "equity_large_cap", current_value: 100 },
+      { symbol: "B", asset_class: "equity_mid_cap", current_value: 100 },
+      { symbol: "C", asset_class: "equity_small_cap", current_value: 100 },
+      { symbol: "D", asset_class: "equity_micro_cap", current_value: 100 },
+    ]
+    const result = applyStressScenario(holdings, -10)
+    expect(result.every((r) => r.affected && r.stressed_value === 90)).toBe(true)
+  })
+
+  it("handles an empty holdings list", () => {
+    expect(applyStressScenario([], -30)).toEqual([])
+  })
+
+  it("a mixed portfolio's total stressed value only reflects the equity drop", () => {
+    const holdings = [
+      { symbol: "RELIANCE", asset_class: "equity_large_cap", current_value: 100000 },
+      { symbol: "GOLDBEES", asset_class: "gold", current_value: 50000 },
+    ]
+    const result = applyStressScenario(holdings, -20)
+    const total = result.reduce((acc, r) => acc + r.stressed_value, 0)
+    expect(total).toBeCloseTo(80000 + 50000, 6) // equity drops 20%, gold untouched
+  })
+
+  it("a positive shockPct models a rally, not just a crash", () => {
+    const holdings = [{ symbol: "RELIANCE", asset_class: "equity_large_cap", current_value: 100000 }]
+    const result = applyStressScenario(holdings, 10)
+    expect(result[0].stressed_value).toBeCloseTo(110000, 6)
   })
 })

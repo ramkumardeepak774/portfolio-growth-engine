@@ -12,6 +12,7 @@ import {
   TrendingUp,
   LogOut,
   Star,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/holdings", label: "Holdings", icon: Briefcase },
   { href: "/watchlist", label: "Watchlist", icon: Star },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/stress-test", label: "Stress Test", icon: AlertTriangle },
   { href: "/tax-report", label: "Tax Report", icon: Receipt },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
