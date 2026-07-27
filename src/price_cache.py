@@ -8,6 +8,7 @@ dashboard down.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import date, timedelta
 
 import pandas as pd
@@ -55,7 +56,13 @@ def _get_price_history_cached(symbol: str, asset_class: AssetClass, period: str)
                 .all()
             )
             if cached and _is_fresh(cached, period_start):
-                return pd.DataFrame({"Date": [c.date for c in cached], "Close": [c.close for c in cached]})
+                # Yahoo sometimes returns NaN for the still-forming intraday
+                # bar (e.g. queried before the day's close is final) — a row
+                # like that got cached before this guard existed and would
+                # otherwise poison every downstream sum (NaN + anything is
+                # NaN) and crash JSON serialization outright.
+                usable = [c for c in cached if not math.isnan(c.close)]
+                return pd.DataFrame({"Date": [c.date for c in usable], "Close": [c.close for c in usable]})
 
         hist = fetch_historical_prices(symbol, asset_class, period=period)
         if hist is None or hist.empty:
@@ -73,6 +80,11 @@ def _get_price_history_cached(symbol: str, asset_class: AssetClass, period: str)
         for idx, row in hist.iterrows():
             row_date = idx.date() if hasattr(idx, "date") else idx
             close = float(row["Close"])
+            if math.isnan(close):
+                # Still-forming intraday bar, or a genuine data gap — don't
+                # cache it; better to have no row for this date than a
+                # NaN one that poisons every future read.
+                continue
             rows.append(
                 {
                     "stock_id": stock.id,
@@ -96,16 +108,23 @@ def _get_price_history_cached(symbol: str, asset_class: AssetClass, period: str)
             session.execute(stmt)
         session.commit()
 
-        dates = [idx.date() if hasattr(idx, "date") else idx for idx in hist.index]
-        return pd.DataFrame({"Date": dates, "Close": hist["Close"].values})
+        return _hist_to_frame(hist)
 
 
 def _fetch_live(symbol: str, asset_class: AssetClass, period: str) -> pd.DataFrame:
     hist = fetch_historical_prices(symbol, asset_class, period=period)
     if hist is None or hist.empty:
         return pd.DataFrame(columns=["Date", "Close"])
+    return _hist_to_frame(hist)
+
+
+def _hist_to_frame(hist: pd.DataFrame) -> pd.DataFrame:
+    """Yahoo's still-forming intraday bar can come back as NaN — drop it
+    rather than let it poison downstream sums (NaN + anything is NaN) and
+    crash JSON serialization outright."""
     dates = [idx.date() if hasattr(idx, "date") else idx for idx in hist.index]
-    return pd.DataFrame({"Date": dates, "Close": hist["Close"].values})
+    df = pd.DataFrame({"Date": dates, "Close": hist["Close"].values})
+    return df.dropna(subset=["Close"]).reset_index(drop=True)
 
 
 def _is_fresh(cached_rows: list[PriceHistory], period_start: date) -> bool:
