@@ -38,7 +38,7 @@
 
 | # | Item | Notes |
 |---|---|---|
-| 10 | Watchlist | Track stocks before buying |
+| ~~10~~ | ~~Watchlist~~ | Done — `/watchlist`, live prices, target price + notes |
 | 11 | SIP tracker | Are scheduled SIPs happening? |
 | 12 | Dividend tracker | Log dividend income |
 | 13 | MF overlap checker | Check if MFs hold the same stocks |
