@@ -24,6 +24,7 @@ from ..analyzer import (
 from ..allocator import calculate_rebalance, get_current_allocation, suggest_monthly_sip_allocation
 from ..decisions import generate_risk_report, validate_new_position
 from ..goal_tracker import track_all_goals, growth_scenarios
+from ..tax_report import InvalidFinancialYear, generate_tax_report
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -212,6 +213,21 @@ async def portfolio_rebalance():
         }
         for a in actions
     ]
+
+
+@router.get("/tax-report")
+async def portfolio_tax_report(fy: str | None = Query(None, pattern=r"^\d{4}-\d{2}$")):
+    """Capital gains (STCG/LTCG) for equity/equity-MF holdings, by financial year.
+
+    Informational only, not tax advice — see src/tax_report.py's module
+    docstring for the full scope and simplifications (FIFO lots, no
+    Section 112A grandfathering, gains only not tax payable, etc).
+    """
+    portfolio = load_portfolio()
+    try:
+        return generate_tax_report(portfolio, fy=fy)
+    except InvalidFinancialYear as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/goals")

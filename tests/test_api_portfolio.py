@@ -152,6 +152,30 @@ class TestPortfolioGoals:
                 assert key in goal
 
 
+class TestPortfolioTaxReport:
+    def test_returns_stcg_ltcg_shape(self, client):
+        resp = client.get("/api/portfolio/tax-report?fy=2024-25")
+        assert resp.status_code == 200
+        body = resp.json()
+        for key in ("fy", "from", "to", "stcg", "ltcg", "unsupported_asset_classes"):
+            assert key in body
+        assert "total_gain" in body["stcg"]
+        assert "lots" in body["stcg"]
+
+    def test_rejects_malformed_fy(self, client):
+        resp = client.get("/api/portfolio/tax-report?fy=not-a-year")
+        assert resp.status_code == 422  # FastAPI Query pattern validation
+
+    def test_defaults_when_fy_omitted(self, client):
+        resp = client.get("/api/portfolio/tax-report")
+        assert resp.status_code == 200
+        assert "fy" in resp.json()
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.get("/api/portfolio/tax-report")
+        assert resp.status_code == 401
+
+
 class TestPortfolioGrowth:
     """Mocks portfolio_value_series so this never hits live Yahoo Finance or Postgres."""
 

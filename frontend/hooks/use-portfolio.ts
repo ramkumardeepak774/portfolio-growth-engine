@@ -19,6 +19,7 @@ export const PORTFOLIO_KEYS = {
   rebalance: ["portfolio", "rebalance"] as const,
   goals: ["portfolio", "goals"] as const,
   growth: (period: string) => ["portfolio", "growth", period] as const,
+  taxReport: (fy?: string) => ["portfolio", "tax-report", fy ?? "current"] as const,
   prices: (symbol: string, period: string) => ["market", "prices", symbol, period] as const,
   fundamentals: (symbol: string) => ["market", "fundamentals", symbol] as const,
 }
@@ -83,6 +84,15 @@ export function usePortfolioGrowth(period = "1y") {
     queryKey: PORTFOLIO_KEYS.growth(period),
     queryFn: () => portfolioService.getGrowth(period),
     staleTime: 60 * 60 * 1000, // 1 hour — historical data doesn't change often
+    retry: 1,
+  })
+}
+
+export function useTaxReport(fy?: string) {
+  return useQuery({
+    queryKey: PORTFOLIO_KEYS.taxReport(fy),
+    queryFn: () => portfolioService.getTaxReport(fy),
+    staleTime: 10 * 60 * 1000,
     retry: 1,
   })
 }
