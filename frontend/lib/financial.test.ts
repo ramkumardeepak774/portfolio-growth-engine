@@ -10,6 +10,8 @@ import {
   generateInsights,
   toDailyReturns,
   toDrawdownSeries,
+  toMonthlyReturns,
+  toRollingReturns,
 } from "./financial"
 
 const ONE_YEAR_MS = 365.25 * 24 * 3600 * 1000
@@ -175,6 +177,81 @@ describe("toDrawdownSeries", () => {
 
   it("handles an empty series without throwing", () => {
     expect(toDrawdownSeries([])).toEqual([])
+  })
+})
+
+describe("toMonthlyReturns", () => {
+  it("returns empty for fewer than 2 points", () => {
+    expect(toMonthlyReturns([])).toEqual([])
+    expect(toMonthlyReturns([{ date: "2025-01-15", value: 100 }])).toEqual([])
+  })
+
+  it("skips the first month (no prior anchor) and returns month-over-month % change", () => {
+    const series = [
+      { date: "2025-01-31", value: 100 },
+      { date: "2025-02-28", value: 110 },
+      { date: "2025-03-31", value: 99 },
+    ]
+    const result = toMonthlyReturns(series)
+    expect(result).toEqual([
+      { year: 2025, month: 2, return_pct: 10 },
+      { year: 2025, month: 3, return_pct: -10 },
+    ])
+  })
+
+  it("uses the last value seen within a month (month-end snapshot)", () => {
+    const series = [
+      { date: "2025-01-05", value: 100 },
+      { date: "2025-01-31", value: 105 },
+      { date: "2025-02-10", value: 120 },
+      { date: "2025-02-28", value: 126 },
+    ]
+    const result = toMonthlyReturns(series)
+    expect(result).toEqual([{ year: 2025, month: 2, return_pct: 20 }])
+  })
+
+  it("spans multiple years correctly", () => {
+    const series = [
+      { date: "2024-12-31", value: 100 },
+      { date: "2025-01-31", value: 105 },
+    ]
+    const result = toMonthlyReturns(series)
+    expect(result).toEqual([{ year: 2025, month: 1, return_pct: 5 }])
+  })
+})
+
+describe("toRollingReturns", () => {
+  it("returns empty for fewer than 2 points", () => {
+    expect(toRollingReturns([], 1)).toEqual([])
+  })
+
+  it("returns null (a gap) until a full window of history is available", () => {
+    const series = [
+      { date: "2024-01-01", value: 100 },
+      { date: "2024-06-01", value: 110 },
+      { date: "2024-12-31", value: 121 },
+    ]
+    const result = toRollingReturns(series, 1)
+    expect(result.every((r) => r.rolling_cagr_pct === null)).toBe(true)
+  })
+
+  it("computes rolling CAGR once the window is available", () => {
+    const series = [
+      { date: "2023-01-01", value: 100 },
+      { date: "2024-01-10", value: 110 },
+    ]
+    const result = toRollingReturns(series, 1)
+    expect(result[0].rolling_cagr_pct).toBeNull()
+    expect(result[1].rolling_cagr_pct).toBeCloseTo(10, 0)
+  })
+
+  it("leaves a gap (null) rather than a false zero when history is insufficient", () => {
+    const series = [
+      { date: "2024-01-01", value: 100 },
+      { date: "2024-02-01", value: 105 },
+    ]
+    const result = toRollingReturns(series, 5)
+    expect(result.every((r) => r.rolling_cagr_pct === null)).toBe(true)
   })
 })
 
