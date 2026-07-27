@@ -314,6 +314,64 @@ class TestDeleteTransaction:
         assert resp.status_code == 401
 
 
+class TestUpdateHolding:
+    """Mocks update_holding so this never hits Postgres."""
+
+    def test_valid_update_returns_ok(self, client, monkeypatch):
+        monkeypatch.setattr("src.api.portfolio_routes.update_holding", lambda symbol, **kwargs: None)
+        resp = client.patch("/api/portfolio/holdings/RELIANCE", json={"sector": "Energy"})
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_not_found_returns_404(self, client, monkeypatch):
+        from src.db_portfolio import HoldingNotFoundError
+
+        def raise_not_found(symbol, **kwargs):
+            raise HoldingNotFoundError("no such holding")
+
+        monkeypatch.setattr("src.api.portfolio_routes.update_holding", raise_not_found)
+        resp = client.patch("/api/portfolio/holdings/NOTREAL", json={"sector": "Energy"})
+        assert resp.status_code == 404
+
+    def test_invalid_asset_class_returns_400(self, client, monkeypatch):
+        from src.db_portfolio import PortfolioWriteError
+
+        def raise_write_error(symbol, **kwargs):
+            raise PortfolioWriteError("Invalid asset class")
+
+        monkeypatch.setattr("src.api.portfolio_routes.update_holding", raise_write_error)
+        resp = client.patch("/api/portfolio/holdings/RELIANCE", json={"asset_class": "nope"})
+        assert resp.status_code == 400
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.patch("/api/portfolio/holdings/RELIANCE", json={"sector": "Energy"})
+        assert resp.status_code == 401
+
+
+class TestDeleteHolding:
+    """Mocks deactivate_holding so this never hits Postgres."""
+
+    def test_valid_delete_returns_ok(self, client, monkeypatch):
+        monkeypatch.setattr("src.api.portfolio_routes.deactivate_holding", lambda symbol: None)
+        resp = client.delete("/api/portfolio/holdings/RELIANCE")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_not_found_returns_404(self, client, monkeypatch):
+        from src.db_portfolio import HoldingNotFoundError
+
+        def raise_not_found(symbol):
+            raise HoldingNotFoundError("no such holding")
+
+        monkeypatch.setattr("src.api.portfolio_routes.deactivate_holding", raise_not_found)
+        resp = client.delete("/api/portfolio/holdings/NOTREAL")
+        assert resp.status_code == 404
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.delete("/api/portfolio/holdings/RELIANCE")
+        assert resp.status_code == 401
+
+
 SAMPLE_HOLDINGS_CSV = (
     '"Instrument","Qty.","Avg. cost","LTP","Invested","Cur. val","P&L","Net chg.","Day chg.",""\n'
     '"RELIANCE",50,1362.6,1288.6,68130,64430,-3700,-5.43,-1.16,""\n'

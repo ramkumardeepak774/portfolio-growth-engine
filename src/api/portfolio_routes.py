@@ -13,11 +13,14 @@ from pydantic import BaseModel, Field
 
 from ..csv_import import commit_import, parse_holdings_csv
 from ..db_portfolio import (
+    HoldingNotFoundError,
     PortfolioWriteError,
     TransactionNotFoundError,
     add_transaction,
+    deactivate_holding,
     delete_transaction,
     get_portfolio as load_portfolio,
+    update_holding,
     update_transaction,
 )
 from ..analyzer import (
@@ -123,6 +126,53 @@ async def portfolio_holding_detail(symbol: str):
             for t in sorted(holding.transactions, key=lambda t: t.date)
         ],
     }
+
+
+class UpdateHoldingRequest(BaseModel):
+    name: str | None = None
+    asset_class: str | None = None
+    sector: str | None = None
+    notes: str | None = None
+
+
+@router.patch("/holdings/{symbol}")
+async def update_holding_route(symbol: str, req: UpdateHoldingRequest):
+    """Edit a holding's name/asset_class/sector/notes.
+
+    Reclassifying asset_class is a real change (affects tax-report
+    bucketing and growth-chart priceability), not cosmetic — the frontend
+    confirm dialog says so.
+    """
+    try:
+        update_holding(
+            symbol,
+            name=req.name,
+            asset_class=req.asset_class,
+            sector=req.sector,
+            notes=req.notes,
+        )
+    except HoldingNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except PortfolioWriteError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        logger.exception("Failed to update holding %s", symbol)
+        raise HTTPException(503, "Could not update holding — database unavailable")
+    return {"status": "ok"}
+
+
+@router.delete("/holdings/{symbol}")
+async def delete_holding_route(symbol: str):
+    """Soft-delete (deactivate) a holding — idempotent, and not permanent:
+    a new transaction for the symbol later reactivates it."""
+    try:
+        deactivate_holding(symbol)
+    except HoldingNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except Exception:
+        logger.exception("Failed to delete holding %s", symbol)
+        raise HTTPException(503, "Could not delete holding — database unavailable")
+    return {"status": "ok"}
 
 
 class AddTransactionRequest(BaseModel):

@@ -32,16 +32,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { TransactionFields, type TransactionFieldsValue } from "@/components/holdings/transaction-fields"
+import { EditHoldingForm } from "@/components/holdings/edit-holding-form"
+import { DeleteHoldingConfirm } from "@/components/holdings/delete-holding-confirm"
 import { useHoldings, useAddTransaction, useImportCsv } from "@/hooks/use-portfolio"
 import { formatINR, formatPct, pnlColor } from "@/lib/format"
 import { ASSET_CLASSES } from "@/lib/constants"
-import { Plus, Search, TrendingUp, TrendingDown, Upload } from "lucide-react"
+import { Plus, Search, TrendingUp, TrendingDown, Upload, Pencil, Trash2 } from "lucide-react"
 import type { HoldingRow, ImportCsvResponse, TransactionType } from "@/types"
 
 function HoldingSkeleton() {
   return (
     <TableRow>
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 9 }).map((_, i) => (
         <TableCell key={i}>
           <Skeleton className="h-4 w-full" />
         </TableCell>
@@ -50,7 +52,15 @@ function HoldingSkeleton() {
   )
 }
 
-function HoldingRow({ holding }: { holding: HoldingRow }) {
+function HoldingRow({
+  holding,
+  onEdit,
+  onDelete,
+}: {
+  holding: HoldingRow
+  onEdit: () => void
+  onDelete: () => void
+}) {
   const positive = holding.pnl >= 0
   return (
     <TableRow className="group">
@@ -92,6 +102,21 @@ function HoldingRow({ holding }: { holding: HoldingRow }) {
           <span className="text-xs text-muted-foreground">—</span>
         )}
       </TableCell>
+      <TableCell className="pr-6">
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="size-7" onClick={onEdit}>
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-red-400 hover:text-red-400"
+            onClick={onDelete}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      </TableCell>
     </TableRow>
   )
 }
@@ -101,6 +126,8 @@ export default function HoldingsPage() {
   const [search, setSearch] = useState("")
   const [addOpen, setAddOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [editingHolding, setEditingHolding] = useState<HoldingRow | null>(null)
+  const [deletingHolding, setDeletingHolding] = useState<HoldingRow | null>(null)
 
   const filtered = useMemo(() => {
     if (!holdings) return []
@@ -206,6 +233,7 @@ export default function HoldingsPage() {
                   <TableHead className="text-xs">P&amp;L</TableHead>
                   <TableHead className="text-xs">P&amp;L %</TableHead>
                   <TableHead className="text-xs">Sector</TableHead>
+                  <TableHead className="text-xs pr-6 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -213,18 +241,47 @@ export default function HoldingsPage() {
                   Array.from({ length: 6 }).map((_, i) => <HoldingSkeleton key={i} />)
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-sm text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-sm text-muted-foreground">
                       {search ? "No holdings match your search." : "No holdings found. Add your first holding."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((h) => <HoldingRow key={h.symbol} holding={h} />)
+                  filtered.map((h) => (
+                    <HoldingRow
+                      key={h.symbol}
+                      holding={h}
+                      onEdit={() => setEditingHolding(h)}
+                      onDelete={() => setDeletingHolding(h)}
+                    />
+                  ))
                 )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={editingHolding !== null} onOpenChange={(open) => !open && setEditingHolding(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Holding</DialogTitle>
+          </DialogHeader>
+          {editingHolding && (
+            <EditHoldingForm holding={editingHolding} onClose={() => setEditingHolding(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deletingHolding !== null} onOpenChange={(open) => !open && setDeletingHolding(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hide Holding</DialogTitle>
+          </DialogHeader>
+          {deletingHolding && (
+            <DeleteHoldingConfirm holding={deletingHolding} onClose={() => setDeletingHolding(null)} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

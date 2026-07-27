@@ -33,6 +33,10 @@ class TransactionNotFoundError(Exception):
     """Raised when a transaction id doesn't exist."""
 
 
+class HoldingNotFoundError(Exception):
+    """Raised when a symbol has no holding (Stock/Position) at all."""
+
+
 def load_portfolio_from_db() -> Portfolio:
     """Reconstruct the Portfolio dataclass from Postgres — raises on any DB error."""
     session_factory = get_sync_session_factory()
@@ -253,4 +257,63 @@ def delete_transaction(transaction_id: int) -> None:
             )
 
         session.delete(txn)
+        session.commit()
+
+
+def update_holding(
+    symbol: str,
+    *,
+    name: str | None = None,
+    asset_class: str | None = None,
+    sector: str | None = None,
+    notes: str | None = None,
+) -> None:
+    """Edit a holding's name/asset_class/sector/notes. Only provided fields
+    change. Changing asset_class is a real reclassification — it affects
+    the tax report's equity-bucket test and portfolio_value_series'
+    priceability, not just cosmetic display.
+    """
+    symbol = symbol.upper().strip()
+    session_factory = get_sync_session_factory()
+    with session_factory() as session:
+        stock = session.query(Stock).filter_by(symbol=symbol).one_or_none()
+        if stock is None:
+            raise HoldingNotFoundError(f"No holding for symbol {symbol!r}")
+
+        if name is not None:
+            stock.name = name
+        if asset_class is not None:
+            try:
+                stock.asset_class = AssetClassEnum(asset_class)
+            except ValueError:
+                raise PortfolioWriteError(f"Invalid asset class: {asset_class!r}")
+        if sector is not None:
+            stock.sector = sector
+
+        if notes is not None:
+            position = session.query(Position).filter_by(stock_id=stock.id).one_or_none()
+            if position is not None:
+                position.notes = notes
+
+        session.commit()
+
+
+def deactivate_holding(symbol: str) -> None:
+    """Soft-delete a holding (Position.is_active = False) — idempotent,
+    deactivating an already-inactive holding is a no-op, not an error.
+    Adding a new transaction for the symbol later reactivates it
+    (existing behavior in add_transaction), so this isn't permanent.
+    """
+    symbol = symbol.upper().strip()
+    session_factory = get_sync_session_factory()
+    with session_factory() as session:
+        stock = session.query(Stock).filter_by(symbol=symbol).one_or_none()
+        if stock is None:
+            raise HoldingNotFoundError(f"No holding for symbol {symbol!r}")
+
+        position = session.query(Position).filter_by(stock_id=stock.id).one_or_none()
+        if position is None:
+            raise HoldingNotFoundError(f"No holding for symbol {symbol!r}")
+
+        position.is_active = False
         session.commit()

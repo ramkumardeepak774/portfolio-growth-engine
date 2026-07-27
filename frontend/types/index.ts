@@ -131,6 +131,13 @@ export interface UpdateTransactionRequest {
   charges?: number
 }
 
+export interface UpdateHoldingRequest {
+  name?: string
+  asset_class?: string
+  sector?: string
+  notes?: string
+}
+
 export interface ImportRow {
   symbol: string
   quantity: number
