@@ -3,6 +3,7 @@ import type {
   AddTransactionRequest,
   AllocationData,
   GoalProgress,
+  HoldingDetail,
   HoldingRow,
   ImportCsvResponse,
   PortfolioGrowth,
@@ -18,6 +19,11 @@ export const portfolioService = {
 
   getHoldings: async (): Promise<HoldingRow[]> => {
     const { data } = await api.get<HoldingRow[]>("/api/portfolio/holdings")
+    return data
+  },
+
+  getHoldingDetail: async (symbol: string): Promise<HoldingDetail> => {
+    const { data } = await api.get<HoldingDetail>(`/api/portfolio/holdings/${symbol}`)
     return data
   },
 

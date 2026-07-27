@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, type ChangeEvent } from "react"
+import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -81,10 +82,10 @@ function HoldingRow({ holding }: { holding: HoldingRow }) {
   return (
     <TableRow className="group">
       <TableCell className="font-medium">
-        <div>
+        <Link href={`/holdings/${encodeURIComponent(holding.symbol)}`} className="block hover:underline">
           <p className="text-sm font-semibold">{holding.symbol}</p>
           <p className="text-xs text-muted-foreground truncate max-w-[120px]">{holding.name}</p>
-        </div>
+        </Link>
       </TableCell>
       <TableCell className="text-sm">{holding.quantity.toLocaleString("en-IN")}</TableCell>
       <TableCell className="text-sm">
