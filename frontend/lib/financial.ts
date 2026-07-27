@@ -130,6 +130,90 @@ export function toDrawdownSeries(values: number[]): Array<{ index: number; drawd
   })
 }
 
+export interface MonthlyReturn {
+  year: number
+  month: number // 1-12
+  return_pct: number
+}
+
+/**
+ * Bucket a daily value series into month-end snapshots and return the %
+ * change month-over-month. Value-based, not cashflow-adjusted — a mid-month
+ * SIP shows up as a return spike distinct from actual price movement.
+ * The first month in the series has no prior anchor and is skipped.
+ */
+export function toMonthlyReturns(
+  series: Array<{ date: string; value: number }>,
+): MonthlyReturn[] {
+  if (series.length < 2) return []
+
+  const monthEnds = new Map<string, { year: number; month: number; value: number }>()
+  for (const point of series) {
+    const d = new Date(point.date)
+    const year = d.getUTCFullYear()
+    const month = d.getUTCMonth() + 1
+    // series is date-ascending, so the last write per key is the month-end value
+    monthEnds.set(`${year}-${month}`, { year, month, value: point.value })
+  }
+
+  const ordered = Array.from(monthEnds.values()).sort(
+    (a, b) => a.year - b.year || a.month - b.month,
+  )
+
+  const result: MonthlyReturn[] = []
+  for (let i = 1; i < ordered.length; i++) {
+    const prev = ordered[i - 1]
+    const curr = ordered[i]
+    if (prev.value <= 0) continue
+    result.push({
+      year: curr.year,
+      month: curr.month,
+      return_pct: ((curr.value - prev.value) / prev.value) * 100,
+    })
+  }
+  return result
+}
+
+export interface RollingReturnPoint {
+  date: string
+  rolling_cagr_pct: number | null
+}
+
+const MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
+
+/**
+ * Rolling CAGR over a fixed trailing window (e.g. 1/3/5 years), walked across
+ * a value series. Points before a full window of history is available are
+ * `null` (a gap), not 0 — a false zero would misread as "flat returns."
+ * Value-based like toMonthlyReturns, not cashflow-adjusted.
+ */
+export function toRollingReturns(
+  series: Array<{ date: string; value: number }>,
+  windowYears: number,
+): RollingReturnPoint[] {
+  if (series.length < 2) return []
+
+  const points = series.map((p) => ({ date: p.date, value: p.value, time: new Date(p.date).getTime() }))
+  const windowMs = windowYears * MS_PER_YEAR
+
+  let startIdx = 0
+  const result: RollingReturnPoint[] = []
+  for (let i = 0; i < points.length; i++) {
+    const targetTime = points[i].time - windowMs
+    while (startIdx + 1 < points.length && points[startIdx + 1].time <= targetTime) {
+      startIdx++
+    }
+    const start = points[startIdx]
+    const years = (points[i].time - start.time) / MS_PER_YEAR
+    if (start.time > targetTime || start.value <= 0 || years <= 0) {
+      result.push({ date: points[i].date, rolling_cagr_pct: null })
+      continue
+    }
+    result.push({ date: points[i].date, rolling_cagr_pct: calcCAGR(start.value, points[i].value, years) })
+  }
+  return result
+}
+
 /** Rule-based portfolio insights */
 export function generateInsights(params: {
   sectorAllocation: Record<string, number>

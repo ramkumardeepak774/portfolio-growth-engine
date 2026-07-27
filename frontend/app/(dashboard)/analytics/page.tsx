@@ -1,11 +1,13 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Header } from "@/components/layout/header"
 import { KPICard } from "@/components/dashboard/kpi-card"
 import { BenchmarkChart } from "@/components/charts/benchmark-chart"
 import { DrawdownChart } from "@/components/charts/drawdown-chart"
 import { SectorPieChart } from "@/components/charts/sector-pie-chart"
+import { MonthlyReturnsHeatmap } from "@/components/charts/monthly-returns-heatmap"
+import { RollingReturnsChart } from "@/components/charts/rolling-returns-chart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -13,6 +15,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Info } from "lucide-react"
 import {
@@ -21,6 +24,7 @@ import {
   useAllocation,
   useRebalance,
   useStockPrices,
+  usePortfolioGrowth,
 } from "@/hooks/use-portfolio"
 import {
   calcBeta,
@@ -30,6 +34,8 @@ import {
   calcMaxDrawdown,
   toDailyReturns,
   toDrawdownSeries,
+  toMonthlyReturns,
+  toRollingReturns,
 } from "@/lib/financial"
 import { formatPct, formatRatio, formatINR, pnlColor } from "@/lib/format"
 
@@ -130,11 +136,30 @@ function MetricCard({
   )
 }
 
+const ROLLING_WINDOWS = [
+  { value: "1", label: "1Y" },
+  { value: "3", label: "3Y" },
+  { value: "5", label: "5Y" },
+]
+
 export default function AnalyticsPage() {
   const { data: summary, isLoading: sumLoading } = usePortfolioSummary()
   const { data: holdings } = useHoldings()
   const { data: allocation, isLoading: allocLoading } = useAllocation()
   const { data: rebalance, isLoading: rebalanceLoading } = useRebalance()
+  const { data: growth, isLoading: growthLoading } = usePortfolioGrowth("5y")
+
+  const [rollingWindow, setRollingWindow] = useState("1")
+
+  const monthlyReturns = useMemo(() => {
+    if (!growth?.series?.length) return []
+    return toMonthlyReturns(growth.series)
+  }, [growth])
+
+  const rollingReturns = useMemo(() => {
+    if (!growth?.series?.length) return []
+    return toRollingReturns(growth.series, Number(rollingWindow))
+  }, [growth, rollingWindow])
 
   const topHolding = holdings?.[0]?.symbol
   const { data: topPrices } = useStockPrices(topHolding ?? "", "1y")
@@ -286,6 +311,44 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <DrawdownChart data={drawdownData} loading={!topPrices} height={200} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-1.5">
+              <CardTitle className="text-sm font-semibold">Monthly Returns</CardTitle>
+              <Tooltip>
+                <TooltipTrigger className="cursor-help inline-flex">
+                  <Info className="size-3 text-muted-foreground/60" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[240px] text-xs">
+                  Month-over-month % change in portfolio value. Value-based, not
+                  cashflow-adjusted — a mid-month SIP can show up as a spike.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <MonthlyReturnsHeatmap data={monthlyReturns} loading={growthLoading} height={220} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Rolling Returns</CardTitle>
+            <Tabs value={rollingWindow} onValueChange={(v) => v && setRollingWindow(v)}>
+              <TabsList>
+                {ROLLING_WINDOWS.map((w) => (
+                  <TabsTrigger key={w.value} value={w.value}>
+                    {w.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            <RollingReturnsChart data={rollingReturns} loading={growthLoading} height={220} />
           </CardContent>
         </Card>
 

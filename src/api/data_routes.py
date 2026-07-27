@@ -29,6 +29,20 @@ async def get_fundamentals(symbol: str):
     return data
 
 
+# collect_prices() lowercases every column (also used by src/tasks.py, which
+# doesn't care about casing) — the frontend's PricePoint type expects
+# PascalCase (Date/Open/High/Low/Close/Volume). Remap only at this JSON
+# boundary rather than changing the shared collector.
+_PRICE_COLUMN_MAP = {
+    "date": "Date",
+    "open": "Open",
+    "high": "High",
+    "low": "Low",
+    "close": "Close",
+    "volume": "Volume",
+}
+
+
 @router.get("/prices/{symbol}")
 async def get_prices(symbol: str, period: str = Query("1y", pattern="^(1mo|3mo|6mo|1y|2y|5y|max)$")):
     """Fetch historical prices."""
@@ -36,7 +50,9 @@ async def get_prices(symbol: str, period: str = Query("1y", pattern="^(1mo|3mo|6
     df = await asyncio.to_thread(collector.collect_prices, symbol.upper(), period=period)
     if df is None or df.empty:
         raise HTTPException(404, f"No price data for {symbol}")
-    return df.to_dict(orient="records")
+    df = df.rename(columns=_PRICE_COLUMN_MAP)
+    keep = [c for c in _PRICE_COLUMN_MAP.values() if c in df.columns]
+    return df[keep].to_dict(orient="records")
 
 
 @router.get("/earnings/{symbol}")
