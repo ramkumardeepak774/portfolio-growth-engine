@@ -35,6 +35,7 @@ from ..allocator import calculate_rebalance, get_current_allocation, suggest_mon
 from ..decisions import generate_risk_report, validate_new_position
 from ..goal_tracker import track_all_goals, growth_scenarios
 from ..tax_report import InvalidFinancialYear, generate_tax_report
+from ..dividends import get_dividend_summary
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -335,6 +336,20 @@ async def portfolio_tax_report(fy: str | None = Query(None, pattern=r"^\d{4}-\d{
     portfolio = load_portfolio()
     try:
         return generate_tax_report(portfolio, fy=fy)
+    except InvalidFinancialYear as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get("/dividends")
+async def portfolio_dividends(fy: str | None = Query(None, pattern=r"^\d{4}-\d{2}$")):
+    """Dividend income summary by financial year — an aggregation over
+    existing DIVIDEND transactions, not a new data concept. Taxed as
+    "income from other sources" at slab rate, a different tax head from
+    /tax-report's STCG/LTCG capital gains, not part of it.
+    """
+    portfolio = load_portfolio()
+    try:
+        return get_dividend_summary(portfolio, fy=fy)
     except InvalidFinancialYear as e:
         raise HTTPException(400, str(e))
 

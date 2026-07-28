@@ -21,21 +21,8 @@ import {
 } from "@/components/ui/select"
 import { useTaxReport } from "@/hooks/use-portfolio"
 import { formatINR, formatDate, pnlColor } from "@/lib/format"
+import { currentFyOption, fyOptions } from "@/lib/fy"
 import { AlertTriangle } from "lucide-react"
-
-function currentFyOption(): string {
-  const now = new Date()
-  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1 // getMonth() is 0-indexed, April = 3
-  return `${startYear}-${String(startYear + 1).slice(2)}`
-}
-
-function fyOptions(): string[] {
-  const current = Number(currentFyOption().split("-")[0])
-  return Array.from({ length: 6 }, (_, i) => {
-    const startYear = current - i
-    return `${startYear}-${String(startYear + 1).slice(2)}`
-  })
-}
 
 function GainTable({ title, gain, lots, loading }: { title: string; gain: number; lots: { symbol: string; buy_date: string; sell_date: string; quantity: number; buy_price: number; sell_price: number; gain: number }[]; loading: boolean }) {
   return (

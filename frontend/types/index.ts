@@ -64,6 +64,27 @@ export interface TaxReport {
   unsupported_asset_classes: TaxUnsupportedAssetClass[]
 }
 
+export interface DividendByHolding {
+  symbol: string
+  name: string
+  total: number
+  count: number
+}
+
+export interface DividendByMonth {
+  month: string
+  total: number
+}
+
+export interface DividendSummary {
+  fy: string
+  from: string
+  to: string
+  total_dividend_income: number
+  by_holding: DividendByHolding[]
+  by_month: DividendByMonth[]
+}
+
 export interface AllocationData {
   by_asset_class: Record<string, number>
   by_sector: Record<string, number>
