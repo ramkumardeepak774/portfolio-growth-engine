@@ -14,6 +14,7 @@ import {
   Star,
   AlertTriangle,
   Coins,
+  Target,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/stress-test", label: "Stress Test", icon: AlertTriangle },
   { href: "/tax-report", label: "Tax Report", icon: Receipt },
   { href: "/dividends", label: "Dividends", icon: Coins },
+  { href: "/goals", label: "Goals", icon: Target },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ]

@@ -333,3 +333,25 @@ export function applyStressScenario(
     }
   })
 }
+
+/** Compound future value — mirrors _future_value() in src/goal_tracker.py,
+ * computed client-side so the goal scenario planner can recompute live as
+ * the user adjusts assumed CAGR/years without a backend round-trip. */
+export function projectGoalValue(current: number, cagrPct: number, years: number): number {
+  if (years <= 0) return current
+  return current * (1 + cagrPct / 100) ** years
+}
+
+export interface GoalMilestone {
+  year: number
+  projectedValue: number
+}
+
+/** Year-by-year projection at a given assumed CAGR, for years 1..years. */
+export function goalMilestones(current: number, cagrPct: number, years: number): GoalMilestone[] {
+  const wholeYears = Math.max(0, Math.floor(years))
+  return Array.from({ length: wholeYears }, (_, i) => {
+    const year = i + 1
+    return { year, projectedValue: projectGoalValue(current, cagrPct, year) }
+  })
+}
