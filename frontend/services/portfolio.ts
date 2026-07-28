@@ -2,6 +2,7 @@ import api from "@/lib/api"
 import type {
   AddTransactionRequest,
   AllocationData,
+  DividendSummary,
   GoalProgress,
   HoldingDetail,
   HoldingRow,
@@ -62,6 +63,11 @@ export const portfolioService = {
 
   getTaxReport: async (fy?: string): Promise<TaxReport> => {
     const { data } = await api.get<TaxReport>("/api/portfolio/tax-report", { params: fy ? { fy } : {} })
+    return data
+  },
+
+  getDividendSummary: async (fy?: string): Promise<DividendSummary> => {
+    const { data } = await api.get<DividendSummary>("/api/portfolio/dividends", { params: fy ? { fy } : {} })
     return data
   },
 

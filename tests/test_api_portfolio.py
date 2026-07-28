@@ -176,6 +176,28 @@ class TestPortfolioTaxReport:
         assert resp.status_code == 401
 
 
+class TestPortfolioDividends:
+    def test_returns_expected_shape(self, client):
+        resp = client.get("/api/portfolio/dividends?fy=2024-25")
+        assert resp.status_code == 200
+        body = resp.json()
+        for key in ("fy", "from", "to", "total_dividend_income", "by_holding", "by_month"):
+            assert key in body
+
+    def test_rejects_malformed_fy(self, client):
+        resp = client.get("/api/portfolio/dividends?fy=not-a-year")
+        assert resp.status_code == 422  # FastAPI Query pattern validation
+
+    def test_defaults_when_fy_omitted(self, client):
+        resp = client.get("/api/portfolio/dividends")
+        assert resp.status_code == 200
+        assert "fy" in resp.json()
+
+    def test_requires_auth(self, unauthed_client):
+        resp = unauthed_client.get("/api/portfolio/dividends")
+        assert resp.status_code == 401
+
+
 class TestPortfolioGrowth:
     """Mocks portfolio_value_series so this never hits live Yahoo Finance or Postgres."""
 

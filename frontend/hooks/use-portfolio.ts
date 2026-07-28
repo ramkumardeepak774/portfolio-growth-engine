@@ -23,6 +23,7 @@ export const PORTFOLIO_KEYS = {
   goals: ["portfolio", "goals"] as const,
   growth: (period: string) => ["portfolio", "growth", period] as const,
   taxReport: (fy?: string) => ["portfolio", "tax-report", fy ?? "current"] as const,
+  dividends: (fy?: string) => ["portfolio", "dividends", fy ?? "current"] as const,
   prices: (symbol: string, period: string) => ["market", "prices", symbol, period] as const,
   fundamentals: (symbol: string) => ["market", "fundamentals", symbol] as const,
 }
@@ -95,6 +96,15 @@ export function useTaxReport(fy?: string) {
   return useQuery({
     queryKey: PORTFOLIO_KEYS.taxReport(fy),
     queryFn: () => portfolioService.getTaxReport(fy),
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  })
+}
+
+export function useDividendSummary(fy?: string) {
+  return useQuery({
+    queryKey: PORTFOLIO_KEYS.dividends(fy),
+    queryFn: () => portfolioService.getDividendSummary(fy),
     staleTime: 10 * 60 * 1000,
     retry: 1,
   })
