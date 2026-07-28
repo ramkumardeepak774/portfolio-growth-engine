@@ -13,6 +13,8 @@ import {
   toDrawdownSeries,
   toMonthlyReturns,
   toRollingReturns,
+  projectGoalValue,
+  goalMilestones,
 } from "./financial"
 
 const ONE_YEAR_MS = 365.25 * 24 * 3600 * 1000
@@ -364,5 +366,50 @@ describe("applyStressScenario", () => {
     const holdings = [{ symbol: "RELIANCE", asset_class: "equity_large_cap", current_value: 100000 }]
     const result = applyStressScenario(holdings, 10)
     expect(result[0].stressed_value).toBeCloseTo(110000, 6)
+  })
+})
+
+describe("projectGoalValue", () => {
+  it("doubles in one year at 100% CAGR", () => {
+    expect(projectGoalValue(100000, 100, 1)).toBeCloseTo(200000, 6)
+  })
+
+  it("compounds correctly over multiple years", () => {
+    // 500000 at 20% for 10 years
+    expect(projectGoalValue(500000, 20, 10)).toBeCloseTo(500000 * 1.2 ** 10, 6)
+  })
+
+  it("returns the current value unchanged for zero years", () => {
+    expect(projectGoalValue(500000, 41.4, 0)).toBe(500000)
+  })
+
+  it("returns the current value unchanged for negative years", () => {
+    expect(projectGoalValue(500000, 41.4, -5)).toBe(500000)
+  })
+
+  it("handles a negative CAGR (a declining scenario)", () => {
+    expect(projectGoalValue(100000, -10, 1)).toBeCloseTo(90000, 6)
+  })
+})
+
+describe("goalMilestones", () => {
+  it("returns one entry per whole year, years 1..N", () => {
+    const result = goalMilestones(100000, 20, 5)
+    expect(result.map((m) => m.year)).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it("each milestone matches projectGoalValue for that year", () => {
+    const result = goalMilestones(500000, 30, 3)
+    result.forEach((m) => {
+      expect(m.projectedValue).toBeCloseTo(projectGoalValue(500000, 30, m.year), 6)
+    })
+  })
+
+  it("returns an empty array for zero years", () => {
+    expect(goalMilestones(100000, 20, 0)).toEqual([])
+  })
+
+  it("floors a fractional years-remaining input", () => {
+    expect(goalMilestones(100000, 20, 3.9)).toHaveLength(3)
   })
 })
